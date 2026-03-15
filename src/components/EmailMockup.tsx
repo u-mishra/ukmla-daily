@@ -1,0 +1,60 @@
+'use client';
+
+export default function EmailMockup() {
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+      {/* macOS window chrome */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="w-3 h-3 rounded-full bg-red-400" />
+        <div className="w-3 h-3 rounded-full bg-yellow-400" />
+        <div className="w-3 h-3 rounded-full bg-green-400" />
+        <span className="ml-3 text-xs text-gray-400 font-medium">Inbox</span>
+      </div>
+
+      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        {/* Dimmed email 1 */}
+        <div className="flex items-center gap-3 px-4 py-3 opacity-40">
+          <div className="w-2 h-2 rounded-full bg-transparent" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500 dark:text-gray-500">Amazon</span>
+              <span className="text-xs text-gray-400">6:45 AM</span>
+            </div>
+            <p className="text-sm text-gray-400 truncate">Your order has been dispatched</p>
+            <p className="text-xs text-gray-300 dark:text-gray-600 truncate hidden sm:block">Track your package — estimated delivery tomorrow...</p>
+          </div>
+        </div>
+
+        {/* Dimmed email 2 */}
+        <div className="flex items-center gap-3 px-4 py-3 opacity-40">
+          <div className="w-2 h-2 rounded-full bg-transparent" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500 dark:text-gray-500">Spotify</span>
+              <span className="text-xs text-gray-400">6:30 AM</span>
+            </div>
+            <p className="text-sm text-gray-400 truncate">Your Discover Weekly is ready</p>
+            <p className="text-xs text-gray-300 dark:text-gray-600 truncate hidden sm:block">We made you a new playlist based on your recent listening...</p>
+          </div>
+        </div>
+
+        {/* Highlighted UKMLA Daily email */}
+        <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 animate-slide-in delay-300">
+          <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse-dot" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900 dark:text-white">UKMLA Daily</span>
+              <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">7:00 AM</span>
+            </div>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+              🩺 Day 47 — Can you spot the diagnosis?
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate hidden sm:block">
+              A 34-year-old woman presents with fatigue, weight gain, and cold intolerance...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
