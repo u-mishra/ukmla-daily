@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       const emailPromises = batch.map(async (sub) => {
         try {
           const { data, error } = await resend.emails.send({
-            from: 'UKMLA Daily <question@send.ukmladaily.co.uk>',
+            from: 'UKMLA Daily <question@ukmladaily.co.uk>',
             to: sub.email,
             subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
             html: dailyQuestionEmailHtml(questionWithDay, sub.email),
