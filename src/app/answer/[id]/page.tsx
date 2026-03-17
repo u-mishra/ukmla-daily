@@ -3,14 +3,15 @@ import { supabase } from '@/lib/supabase';
 import AnswerClient from './AnswerClient';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
   const { data: question } = await supabase
     .from('questions')
     .select('day_number, specialty')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   const dayText = question?.day_number ? `Day ${question.day_number}` : 'Practice Question';
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AnswerPage({ params }: Props) {
+  const { id } = await params;
   const { data: question, error } = await supabase
     .from('questions')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error || !question) {
@@ -56,7 +58,7 @@ export default async function AnswerPage({ params }: Props) {
   const { data: clicks } = await supabase
     .from('answer_clicks')
     .select('got_it_right')
-    .eq('question_id', params.id)
+    .eq('question_id', id)
     .not('got_it_right', 'is', null);
 
   const total = clicks?.length || 0;

@@ -2,7 +2,6 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import { supabase } from '@/lib/supabase';
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams();
@@ -16,15 +15,20 @@ function UnsubscribeContent() {
         return;
       }
 
-      const { error } = await supabase
-        .from('subscribers')
-        .update({ is_active: false, unsubscribed_at: new Date().toISOString() })
-        .eq('email', email.toLowerCase());
+      try {
+        const res = await fetch('/api/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.toLowerCase() }),
+        });
 
-      if (error) {
+        if (res.ok) {
+          setStatus('success');
+        } else {
+          setStatus('error');
+        }
+      } catch {
         setStatus('error');
-      } else {
-        setStatus('success');
       }
     }
 
