@@ -67,29 +67,51 @@ export async function POST(request: NextRequest) {
     // Send emails in batches (Resend supports batch sending)
     const batchSize = 50;
     let sentCount = 0;
+    const errors: string[] = [];
 
     for (let i = 0; i < subscribers.length; i += batchSize) {
       const batch = subscribers.slice(i, i + batchSize);
-      const emailPromises = batch.map(sub =>
-        resend.emails.send({
-          from: 'UKMLA Daily <question@ukmladaily.co.uk>',
-          to: sub.email,
-          subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
-          html: dailyQuestionEmailHtml(questionWithDay, sub.email),
-        }).catch(err => {
-          console.error(`Failed to send to ${sub.email}:`, err);
-          return null;
-        })
-      );
+      const emailPromises = batch.map(async (sub) => {
+        try {
+          const { data, error } = await resend.emails.send({
+            from: 'UKMLA Daily <question@send.ukmladaily.co.uk>',
+            to: sub.email,
+            subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
+            html: dailyQuestionEmailHtml(questionWithDay, sub.email),
+          });
+
+          if (error) {
+            const msg = `Resend error for ${sub.email}: ${JSON.stringify(error)}`;
+            console.error(msg);
+            errors.push(msg);
+            return false;
+          }
+
+          console.log(`Sent to ${sub.email}, id: ${data?.id}`);
+          return true;
+        } catch (err) {
+          const msg = `Exception sending to ${sub.email}: ${err instanceof Error ? err.message : JSON.stringify(err)}`;
+          console.error(msg);
+          errors.push(msg);
+          return false;
+        }
+      });
       const results = await Promise.all(emailPromises);
       sentCount += results.filter(Boolean).length;
     }
 
-    return NextResponse.json({
+    const response: Record<string, unknown> = {
       message: `Day ${dayNumber} sent to ${sentCount}/${subscribers.length} subscribers.`,
       questionId: question.id,
       dayNumber,
-    });
+    };
+
+    if (errors.length > 0) {
+      response.errors = errors;
+      console.error(`Send daily completed with ${errors.length} error(s):`, errors);
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Send daily error:', error);
     return NextResponse.json({ error: 'Failed to send daily email.' }, { status: 500 });
