@@ -7,12 +7,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret or admin password
     const authHeader = request.headers.get('authorization');
     const body = await request.json().catch(() => ({}));
     const secret = authHeader?.replace('Bearer ', '') || body.secret;
 
-    if (secret !== process.env.CRON_SECRET) {
+    const isAuthorized =
+      secret === process.env.CRON_SECRET ||
+      (body.password && body.password === process.env.ADMIN_PASSWORD);
+
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

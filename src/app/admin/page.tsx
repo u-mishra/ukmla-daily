@@ -129,7 +129,7 @@ export default function AdminPage() {
     const res = await fetch('/api/send-daily', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: password }),
+      body: JSON.stringify({ password }),
     });
     const data = await res.json();
     setMessage(data.message || data.error);
