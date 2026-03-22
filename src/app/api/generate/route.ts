@@ -219,15 +219,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      // If regenerate flag is set, delete all pending questions first
+      // If regenerate flag is set, mark all pending questions as rejected
       if (regenerate || body.regenerate) {
-        const { error: deleteError } = await supabase
+        const { error: rejectError } = await supabase
           .from('questions')
-          .delete()
+          .update({ status: 'rejected' })
           .eq('status', 'pending');
 
-        if (deleteError) {
-          console.error('Failed to delete pending questions:', deleteError);
+        if (rejectError) {
+          console.error('Failed to reject pending questions:', rejectError);
         }
       }
     }

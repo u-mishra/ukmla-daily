@@ -12,26 +12,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No question IDs provided.' }, { status: 400 });
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'pending';
-
-    // If rejecting, we just delete the questions
     if (action === 'reject') {
-      const { error } = await supabase
+      // Update status to 'rejected' instead of deleting.
+      // This uses the existing UPDATE RLS policy (which works) rather than
+      // DELETE (which requires a separate RLS policy that may not be applied).
+      const { error, data } = await supabase
         .from('questions')
-        .delete()
-        .in('id', questionIds);
-      if (error) throw error;
-      return NextResponse.json({ message: `Rejected ${questionIds.length} questions.` });
+        .update({ status: 'rejected' })
+        .in('id', questionIds)
+        .select('id');
+
+      if (error) {
+        console.error('Reject error:', error);
+        throw error;
+      }
+
+      const rejectedCount = data?.length || 0;
+      console.log(`Rejected ${rejectedCount} question(s), ids: ${questionIds.join(', ')}`);
+      return NextResponse.json({ message: `Rejected ${rejectedCount} question(s).`, count: rejectedCount });
     }
 
+    // Approve
     const { error } = await supabase
       .from('questions')
-      .update({ status: newStatus })
+      .update({ status: 'approved' })
       .in('id', questionIds);
 
     if (error) throw error;
 
-    return NextResponse.json({ message: `${action === 'approve' ? 'Approved' : 'Updated'} ${questionIds.length} questions.` });
+    return NextResponse.json({ message: `Approved ${questionIds.length} question(s).` });
   } catch (error) {
     console.error('Admin approve error:', error);
     return NextResponse.json({ error: 'Failed to update questions.' }, { status: 500 });
