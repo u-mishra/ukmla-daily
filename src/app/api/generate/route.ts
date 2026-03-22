@@ -80,6 +80,68 @@ function buildReferenceBlock(conditionName: string): string {
   return `\nREFERENCE VALUES (use these when including investigation results in vignettes):\n${lines}\n`;
 }
 
+const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
+const OPTION_KEYS = ['option_a', 'option_b', 'option_c', 'option_d', 'option_e'] as const;
+
+/**
+ * Balance answer distribution across a batch of questions.
+ * If any position has <15% or >25% of answers, swap options on
+ * overrepresented questions to move their correct answer to an
+ * underrepresented position.
+ */
+function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQuestion[] {
+  if (questions.length < 5) return questions; // too few to balance
+
+  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+  for (const q of questions) counts[q.correct_answer]++;
+
+  const total = questions.length;
+  const minCount = Math.floor(total * 0.15);
+  const maxCount = Math.ceil(total * 0.25);
+
+  // Find over- and under-represented positions
+  const over: string[] = [];
+  const under: string[] = [];
+  for (const letter of ANSWER_LETTERS) {
+    if (counts[letter] > maxCount) over.push(letter);
+    if (counts[letter] < minCount) under.push(letter);
+  }
+
+  if (over.length === 0 || under.length === 0) return questions;
+
+  // Swap: for each overrepresented position, find questions with that answer
+  // and swap with an underrepresented position
+  for (const fromLetter of over) {
+    while (counts[fromLetter] > maxCount && under.length > 0) {
+      const toLetter = under[0];
+      // Find a question with correct_answer === fromLetter
+      const qi = questions.findIndex(q => q.correct_answer === fromLetter);
+      if (qi === -1) break;
+
+      const q = { ...questions[qi] };
+      const fromIdx = ANSWER_LETTERS.indexOf(fromLetter as typeof ANSWER_LETTERS[number]);
+      const toIdx = ANSWER_LETTERS.indexOf(toLetter as typeof ANSWER_LETTERS[number]);
+      const fromKey = OPTION_KEYS[fromIdx];
+      const toKey = OPTION_KEYS[toIdx];
+
+      // Swap the option text
+      const temp = q[fromKey];
+      q[fromKey] = q[toKey];
+      q[toKey] = temp;
+      q.correct_answer = toLetter;
+
+      questions[qi] = q;
+      counts[fromLetter]--;
+      counts[toLetter]++;
+
+      // Check if toLetter is no longer under-represented
+      if (counts[toLetter] >= minCount) under.shift();
+    }
+  }
+
+  return questions;
+}
+
 async function generateQuestions(conditionName: string, content: string): Promise<GeneratedQuestion[]> {
   const referenceBlock = buildReferenceBlock(conditionName);
 
@@ -130,7 +192,7 @@ OPTION REQUIREMENTS
   — Don't write "Type 4 (hyperkalaemic) RTA" when the stem mentions hyperkalaemia
   — Don't write "Addisonian crisis" when the stem describes hyperpigmentation and hypotension
   — Keep option text neutral and factual
-• Distribute the correct answer: one question should have the answer in A or B, the other in D or E. Never both on C.
+• ANSWER DISTRIBUTION: Distribute correct answers evenly across positions A, B, C, D, and E. For every batch of 10 questions, each position should appear approximately twice. Options A and E must appear just as often as B, C, and D. Never have 3 or more consecutive questions with the same correct answer position. For these 2 questions, use two DIFFERENT correct answer positions.
 
 ═══════════════════════════════════════
 DIFFICULTY
@@ -189,7 +251,6 @@ EXPLANATION MUST EXPLAIN THE FINDINGS:
 Return ONLY a JSON array with exactly 2 objects:
 [
   {
-    "specialty": "string (use the medical specialty, e.g. Cardiology, Respiratory, etc.)",
     "difficulty": "medium" or "hard",
     "vignette": "string (the full clinical vignette ending with the question stem)",
     "option_a": "string",
@@ -274,13 +335,14 @@ export async function POST(request: NextRequest) {
       q.vignette.toLowerCase()
     );
 
+    // Collect all generated questions for batch answer balancing
+    const allGenerated: { question: GeneratedQuestion; specialty: string }[] = [];
+
     for (const page of childPages) {
       try {
         const conditionLower = page.title.toLowerCase();
 
         // Count existing questions that mention this condition in the vignette
-        // Use keyword matching: split condition name into significant words
-        // (e.g. "Otitis Media" → ["otitis", "media"])
         const keywords = conditionLower
           .split(/[\s\-\/,]+/)
           .filter(w => w.length > 2);
@@ -302,28 +364,38 @@ export async function POST(request: NextRequest) {
 
         const questions = await generateQuestions(page.title, content);
 
-        // Only insert up to the number needed
+        // Override specialty with Notion page title (not the AI's guess)
         const toInsert = questions.slice(0, questionsNeeded);
-
         for (const q of toInsert) {
-          const { error } = await supabase.from('questions').insert({
-            specialty: q.specialty,
-            difficulty: q.difficulty,
-            vignette: q.vignette,
-            option_a: q.option_a,
-            option_b: q.option_b,
-            option_c: q.option_c,
-            option_d: q.option_d,
-            option_e: q.option_e,
-            correct_answer: q.correct_answer,
-            explanation: q.explanation,
-            status: 'pending',
-          });
-          if (!error) totalGenerated++;
+          q.specialty = page.title;
+          allGenerated.push({ question: q, specialty: page.title });
         }
       } catch (pageError) {
         console.error(`Failed to process page "${page.title}":`, pageError);
       }
+    }
+
+    // Post-process: balance answer distribution across the whole batch
+    const questionsOnly = allGenerated.map(g => g.question);
+    const balanced = balanceAnswerDistribution(questionsOnly);
+
+    // Insert all balanced questions
+    for (let i = 0; i < balanced.length; i++) {
+      const q = balanced[i];
+      const { error } = await supabase.from('questions').insert({
+        specialty: q.specialty,
+        difficulty: q.difficulty,
+        vignette: q.vignette,
+        option_a: q.option_a,
+        option_b: q.option_b,
+        option_c: q.option_c,
+        option_d: q.option_d,
+        option_e: q.option_e,
+        correct_answer: q.correct_answer,
+        explanation: q.explanation,
+        status: 'pending',
+      });
+      if (!error) totalGenerated++;
     }
 
     if (isAutoTrigger && totalGenerated > 0) {
