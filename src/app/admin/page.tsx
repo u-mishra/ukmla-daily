@@ -96,6 +96,14 @@ export default function AdminPage() {
   };
 
   const handleReject = async (ids: string[]) => {
+    // Optimistically remove from UI immediately
+    setQuestions(prev => prev.filter(q => !ids.includes(q.id)));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.delete(id));
+      return next;
+    });
+
     const res = await fetch('/api/admin/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,8 +111,10 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setMessage(`Rejected ${ids.length} question(s)`);
-      fetchQuestions();
       fetchStats();
+    } else {
+      setMessage('Failed to reject — please refresh and try again');
+      fetchQuestions();
     }
   };
 
