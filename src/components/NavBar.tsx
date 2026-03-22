@@ -14,9 +14,9 @@ export default function NavBar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50'
+          ? 'bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl border-b border-gray-200/40 dark:border-gray-800/40 shadow-sm shadow-black/[0.03]'
           : 'bg-transparent'
       }`}
     >
@@ -28,7 +28,7 @@ export default function NavBar() {
           <DarkModeToggle />
           <a
             href="#subscribe"
-            className="text-sm font-semibold px-4 py-1.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
+            className="text-sm font-semibold px-4 py-1.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/10 active:scale-[0.98] transition-all duration-200"
           >
             Subscribe
           </a>

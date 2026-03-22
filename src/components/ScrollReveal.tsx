@@ -17,6 +17,7 @@ export default function ScrollReveal({
     const el = ref.current;
     if (!el) return;
 
+    // Reveal immediately if already in viewport on mount
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -24,7 +25,7 @@ export default function ScrollReveal({
           observer.unobserve(el);
         }
       },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.08, rootMargin: '0px 0px -60px 0px' }
     );
 
     observer.observe(el);

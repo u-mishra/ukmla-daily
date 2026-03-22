@@ -2,16 +2,16 @@
 
 export default function EmailMockup() {
   return (
-    <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+    <div className="bg-white/80 dark:bg-gray-900/60 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-700/40 shadow-lg shadow-gray-900/[0.04] dark:shadow-black/20 overflow-hidden hover:shadow-xl transition-shadow duration-500">
       {/* macOS window chrome */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700/50">
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50/80 dark:bg-gray-800/60 border-b border-gray-200/50 dark:border-gray-700/40">
         <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
         <div className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
         <div className="w-3 h-3 rounded-full bg-[#28C840]" />
         <span className="ml-3 text-xs text-gray-400 dark:text-gray-500 font-medium">Inbox</span>
       </div>
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-800/80">
+      <div className="divide-y divide-gray-100/80 dark:divide-gray-800/60">
         {/* Dimmed email 1 */}
         <div className="flex items-center gap-3 px-4 py-3 opacity-35">
           <div className="w-2 h-2 rounded-full bg-transparent" />
@@ -39,7 +39,7 @@ export default function EmailMockup() {
         </div>
 
         {/* Highlighted UKMLA Daily email */}
-        <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50/40 dark:bg-indigo-950/15 animate-slide-in delay-300">
+        <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 animate-slide-in delay-300">
           <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse-dot" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">

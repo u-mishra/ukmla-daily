@@ -10,13 +10,13 @@ const sampleQuestion = {
   options: [
     { letter: 'A', text: 'CT scan of the temporal bones' },
     { letter: 'B', text: 'Tympanometry' },
-    { letter: 'C', text: 'MRI of the internal auditory meati' },
+    { letter: 'C', text: 'MRI of the cerebellopontine angle' },
     { letter: 'D', text: 'Otoacoustic emissions testing' },
     { letter: 'E', text: 'Brainstem evoked response audiometry' },
   ],
   correct: 'C',
   explanation:
-    'Unilateral sensorineural hearing loss with tinnitus should raise suspicion of a vestibular schwannoma (acoustic neuroma). MRI with gadolinium of the internal auditory meati is the gold-standard investigation to identify cerebellopontine angle tumours. Audiometry has already confirmed the hearing loss pattern; imaging is needed to identify the underlying cause.',
+    'Unilateral sensorineural hearing loss with tinnitus should raise suspicion of a vestibular schwannoma (acoustic neuroma). MRI with gadolinium of the cerebellopontine angle is the gold-standard investigation to identify CPA tumours. Audiometry has already confirmed the hearing loss pattern; imaging is needed to identify the underlying cause.',
 };
 
 export default function SampleQuestion() {
@@ -34,41 +34,41 @@ export default function SampleQuestion() {
   const getOptionStyle = (letter: string) => {
     if (!revealed) {
       return selected === letter
-        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20'
-        : 'border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600';
+        ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20 shadow-sm shadow-indigo-500/10'
+        : 'border-gray-200/80 dark:border-gray-700/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-gray-50/50 dark:hover:bg-gray-800/30';
     }
     if (letter === sampleQuestion.correct) {
-      return 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30';
+      return 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/30 shadow-sm shadow-emerald-500/10';
     }
     if (selected === letter && letter !== sampleQuestion.correct) {
-      return 'border-red-400 bg-red-50 dark:bg-red-950/30';
+      return 'border-red-400 bg-red-50/80 dark:bg-red-950/30';
     }
-    return 'border-gray-200 dark:border-gray-700/60 opacity-50';
+    return 'border-gray-200/60 dark:border-gray-700/40 opacity-40';
   };
 
   const getLetterBadgeStyle = (letter: string) => {
     if (!revealed) {
       return selected === letter
-        ? 'bg-indigo-500 text-white'
+        ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30'
         : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400';
     }
-    if (letter === sampleQuestion.correct) return 'bg-emerald-500 text-white';
+    if (letter === sampleQuestion.correct) return 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30';
     if (selected === letter && letter !== sampleQuestion.correct) return 'bg-red-400 text-white';
     return 'bg-gray-100 dark:bg-gray-800 text-gray-400';
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div className="relative bg-white/80 dark:bg-gray-900/60 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-700/40 p-6 sm:p-8 shadow-xl shadow-gray-900/[0.06] dark:shadow-black/20 hover:shadow-2xl hover:shadow-gray-900/[0.08] dark:hover:shadow-black/30 transition-all duration-500 border-l-4 border-l-indigo-500/70 dark:border-l-indigo-400/50">
       <div className="flex gap-2 mb-5">
-        <span className="px-2.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-md text-xs font-semibold">
+        <span className="px-2.5 py-0.5 bg-indigo-100/80 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-md text-xs font-semibold">
           {sampleQuestion.specialty}
         </span>
-        <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-md text-xs font-semibold">
+        <span className="px-2.5 py-0.5 bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-md text-xs font-semibold">
           {sampleQuestion.difficulty}
         </span>
       </div>
 
-      <p className="text-base sm:text-[17px] leading-relaxed text-gray-700 dark:text-gray-300 mb-6">
+      <p className="text-base sm:text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300 mb-7">
         {sampleQuestion.vignette}
       </p>
 
@@ -77,10 +77,10 @@ export default function SampleQuestion() {
           <button
             key={opt.letter}
             onClick={() => handleSelect(opt.letter)}
-            className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex items-start gap-3 min-h-[44px] cursor-pointer ${getOptionStyle(opt.letter)}`}
+            className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex items-start gap-3 min-h-[44px] cursor-pointer active:scale-[0.99] ${getOptionStyle(opt.letter)}`}
           >
             <span
-              className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors duration-200 ${getLetterBadgeStyle(opt.letter)}`}
+              className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-all duration-200 ${getLetterBadgeStyle(opt.letter)}`}
             >
               {revealed && opt.letter === sampleQuestion.correct ? '✓' : revealed && selected === opt.letter ? '✗' : opt.letter}
             </span>
@@ -95,7 +95,7 @@ export default function SampleQuestion() {
           disabled={!selected}
           className={`mt-6 w-full py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 min-h-[44px] ${
             selected
-              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 shadow-sm'
+              ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 hover:scale-[1.01] hover:shadow-lg hover:shadow-indigo-500/25 active:scale-[0.99]'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
           }`}
         >
@@ -104,7 +104,7 @@ export default function SampleQuestion() {
       )}
 
       {revealed && (
-        <div className="mt-6 p-5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 animate-fade-up">
+        <div className="mt-6 p-5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 animate-fade-up">
           <p className="font-semibold text-emerald-800 dark:text-emerald-300 mb-2 text-sm">Explanation</p>
           <p className="text-emerald-700 dark:text-emerald-300/90 text-sm sm:text-[15px] leading-relaxed">
             {sampleQuestion.explanation}
