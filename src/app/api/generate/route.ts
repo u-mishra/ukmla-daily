@@ -85,7 +85,7 @@ async function generateQuestions(conditionName: string, content: string): Promis
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 6000,
+    max_tokens: 8000,
     messages: [
       {
         role: 'user',
@@ -153,14 +153,36 @@ Each explanation must:
 • Be 4–6 sentences total
 
 ═══════════════════════════════════════
-CLINICAL ACCURACY
+CLINICAL ACCURACY — NON-NEGOTIABLE
 ═══════════════════════════════════════
 
-• Every clinical fact must be correct and verifiable
-• The correct answer must DEFINITELY be correct — there must be no reasonable argument for another option being better
-• Use current UK guidelines and standard UK practice
-• The vignette, correct answer, and explanation must all be internally consistent
-• Investigation values must match the reference ranges provided
+This is the most important section. Clinical errors make questions unusable.
+
+INTERNAL CONSISTENCY:
+• Every examination finding and investigation result in the vignette MUST be textbook-accurate for the intended diagnosis. Do not invent findings that do not match the pathophysiology.
+• If the diagnosis involves conductive hearing loss on the LEFT, Weber MUST lateralise to the LEFT (the affected ear). If it is sensorineural hearing loss on the LEFT, Weber MUST lateralise to the RIGHT (the unaffected ear). Rinne is negative (bone > air) on the side with conductive loss, and positive bilaterally in sensorineural loss.
+• If the vignette includes blood results, those values must be consistent with the diagnosis — e.g. raised CRP in infection, raised TSH with low free T4 in hypothyroidism.
+• The examination findings, investigation results, history, and correct answer must ALL point unambiguously to the same diagnosis. There must be zero contradiction between any elements.
+
+COMPLETENESS:
+• The stem must contain enough clinical detail to reason through to the single best answer. No ambiguity — a competent final-year student should be able to arrive at the answer from the information given.
+• Do not omit a critical finding that would be needed to distinguish between two plausible options.
+
+ACCURACY:
+• Every clinical fact must be correct and verifiable against standard medical textbooks.
+• The correct answer must DEFINITELY be correct — there must be no reasonable argument for another option being better.
+• Use current UK guidelines and standard UK practice (NICE, BNF, SIGN).
+• Investigation values must match the reference ranges provided above.
+
+SELF-VERIFICATION — after drafting each question, re-read it and check:
+1. Does every examination finding match the intended diagnosis? (e.g. if the answer is a left-sided conductive pathology, does Weber lateralise left?)
+2. Do all investigation results support the correct answer and not a distractor?
+3. Is the explanation consistent with every detail in the stem?
+4. Could a reasonable student argue for a different answer given the information? If yes, fix the stem.
+5. Are the examination findings and investigation results textbook-accurate for this condition, not invented or confused with a similar condition?
+
+EXPLANATION MUST EXPLAIN THE FINDINGS:
+• The explanation must explicitly state WHY each key examination finding and investigation result occurs in this condition — not just name the diagnosis. For example: "Weber lateralises to the left because otitis externa causes conductive hearing loss, and in conductive loss the tuning fork sound is heard louder in the affected ear."
 
 ═══════════════════════════════════════
 
