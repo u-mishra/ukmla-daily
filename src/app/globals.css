@@ -67,6 +67,19 @@
   );
 }
 
+/* Subtle dot grid texture */
+.hero-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.dark .hero-dots {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
 /* ─── Section warm tints ─── */
 .section-warm {
   background: linear-gradient(180deg, #faf9f7 0%, #f7f5f2 50%, #faf9f7 100%);

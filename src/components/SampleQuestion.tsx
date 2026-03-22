@@ -58,7 +58,7 @@ export default function SampleQuestion() {
   };
 
   return (
-    <div className="relative bg-white/80 dark:bg-gray-900/60 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-700/40 p-6 sm:p-8 shadow-xl shadow-gray-900/[0.06] dark:shadow-black/20 hover:shadow-2xl hover:shadow-gray-900/[0.08] dark:hover:shadow-black/30 transition-all duration-500 border-l-4 border-l-indigo-500/70 dark:border-l-indigo-400/50">
+    <div className="relative bg-white/80 dark:bg-gray-900/60 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-700/40 p-6 sm:p-8 shadow-xl shadow-indigo-500/[0.07] dark:shadow-indigo-900/30 hover:shadow-2xl hover:shadow-indigo-500/[0.1] dark:hover:shadow-indigo-900/40 hover:-translate-y-0.5 transition-all duration-500 border-l-4 border-l-indigo-500/70 dark:border-l-indigo-400/50">
       <div className="flex gap-2 mb-5">
         <span className="px-2.5 py-0.5 bg-indigo-100/80 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-md text-xs font-semibold">
           {sampleQuestion.specialty}
