@@ -118,13 +118,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (regenerate = false) => {
     setLoading(true);
-    setMessage('Generating questions...');
+    setMessage(regenerate ? 'Deleting pending questions and regenerating...' : 'Generating questions...');
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, regenerate }),
     });
     const data = await res.json();
     setMessage(data.message || data.error);
@@ -216,11 +216,18 @@ export default function AdminPage() {
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3 mb-8">
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate(false)}
             disabled={loading}
             className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 disabled:opacity-50"
           >
             Generate Questions
+          </button>
+          <button
+            onClick={() => { if (confirm('This will delete all pending questions and regenerate them. Continue?')) handleGenerate(true); }}
+            disabled={loading}
+            className="px-5 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50"
+          >
+            Regenerate Pending
           </button>
           <button
             onClick={handleSendDaily}
