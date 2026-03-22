@@ -76,6 +76,15 @@
   background: linear-gradient(180deg, rgba(15, 15, 20, 0.6) 0%, rgba(18, 18, 28, 0.4) 50%, rgba(15, 15, 20, 0.6) 100%);
 }
 
+/* CTA section gradient */
+.cta-gradient {
+  background: linear-gradient(180deg, #f8f6f3 0%, #f3eeea 40%, #f0ece7 60%, #f8f6f3 100%);
+}
+
+.dark .cta-gradient {
+  background: linear-gradient(180deg, rgba(12, 12, 18, 0.7) 0%, rgba(16, 16, 26, 0.5) 50%, rgba(12, 12, 18, 0.7) 100%);
+}
+
 /* ─── Scroll-triggered reveal ─── */
 .reveal {
   opacity: 0;
