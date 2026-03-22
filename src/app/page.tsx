@@ -57,7 +57,7 @@ export default function Home() {
           {/* Credibility strip */}
           <ScrollReveal delay={1}>
             <p className="text-center text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 mb-6 tracking-wide">
-              UKMLA-style SBAs&ensp;·&ensp;Detailed explanations&ensp;·&ensp;Built for busy med students&ensp;·&ensp;Free forever
+              UKMLA-style SBAs&ensp;·&ensp;Detailed explanations&ensp;·&ensp;Built for busy med students&ensp;·&ensp;Free
             </p>
           </ScrollReveal>
 
@@ -86,7 +86,7 @@ export default function Home() {
       </section>
 
       {/* ─── Bottom CTA ─── */}
-      <section className="relative cta-gradient py-14 sm:py-20 overflow-hidden" id="subscribe">
+      <section className="relative cta-gradient py-12 sm:py-16 overflow-hidden" id="subscribe">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-500/[0.05] dark:bg-indigo-500/[0.08] rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-xl mx-auto px-5 text-center">
