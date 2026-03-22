@@ -68,7 +68,7 @@ export default function SampleQuestion() {
         </span>
       </div>
 
-      <p className="text-base sm:text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300 mb-7">
+      <p className="text-base sm:text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300 mb-7 font-serif" style={{ fontFamily: "'Crimson Text', Georgia, serif" }}>
         {sampleQuestion.vignette}
       </p>
 
@@ -84,7 +84,7 @@ export default function SampleQuestion() {
             >
               {revealed && opt.letter === sampleQuestion.correct ? '✓' : revealed && selected === opt.letter ? '✗' : opt.letter}
             </span>
-            <span className="text-sm sm:text-[15px] text-gray-700 dark:text-gray-300 pt-0.5">{opt.text}</span>
+            <span className="text-sm sm:text-[15px] text-gray-700 dark:text-gray-300 pt-0.5 font-serif" style={{ fontFamily: "'Crimson Text', Georgia, serif" }}>{opt.text}</span>
           </button>
         ))}
       </div>

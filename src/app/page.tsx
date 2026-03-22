@@ -60,7 +60,7 @@ export default function Home() {
           {/* Sample question — the centrepiece */}
           <ScrollReveal delay={2}>
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
-              Try today&apos;s question
+              Try a sample question
             </p>
             <SampleQuestion />
           </ScrollReveal>
