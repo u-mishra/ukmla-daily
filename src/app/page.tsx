@@ -25,29 +25,32 @@ export default function Home() {
                 <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-500 dark:from-indigo-400 dark:via-blue-400 dark:to-indigo-300 bg-clip-text text-transparent">UKMLA</span>
                 ,<br />one question at a time.
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-lg sm:text-xl max-w-xl mx-auto leading-relaxed">
-                One clinical SBA in your inbox every morning at 7am. Two&nbsp;minutes. No app. No login. Just the habit that compounds.
+              <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg font-medium max-w-xl mx-auto">
+                One daily clinical SBA, straight to your inbox at 7am.
+              </p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm sm:text-base max-w-xl mx-auto mt-2">
+                Two minutes. No app. No login. Just the habit that compounds.
               </p>
             </div>
           </ScrollReveal>
 
           {/* ─── How it works strip ─── */}
           <ScrollReveal delay={1}>
-            <div className="flex items-center justify-center gap-1.5 sm:gap-3 py-3 mb-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 py-3 mb-2">
               {[
                 { num: '1', label: 'Drop your email' },
                 { num: '2', label: 'Wake up to a question' },
                 { num: '3', label: 'Learn why' },
               ].map((step, i) => (
-                <div key={i} className="flex items-center gap-1.5 sm:gap-2">
+                <div key={i} className="flex items-center gap-2">
                   <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">
                     {step.num}
                   </span>
-                  <span className="text-[11px] sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     {step.label}
                   </span>
                   {i < 2 && (
-                    <span className="text-gray-300 dark:text-gray-600 text-[10px] sm:text-xs mx-0.5 sm:mx-1">›</span>
+                    <span className="text-gray-300 dark:text-gray-600 text-xs hidden sm:inline ml-1">›</span>
                   )}
                 </div>
               ))}
@@ -56,9 +59,15 @@ export default function Home() {
 
           {/* Credibility strip */}
           <ScrollReveal delay={1}>
-            <p className="text-center text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 mb-6 tracking-wide">
-              UKMLA-style SBAs&ensp;·&ensp;Detailed explanations&ensp;·&ensp;Built for busy med students&ensp;·&ensp;Free
-            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-6 text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 tracking-wide">
+              <span>UKMLA-style SBAs</span>
+              <span className="hidden sm:inline">·</span>
+              <span>Detailed explanations</span>
+              <span className="hidden sm:inline">·</span>
+              <span>Built for busy med students</span>
+              <span className="hidden sm:inline">·</span>
+              <span>Free</span>
+            </div>
           </ScrollReveal>
 
           {/* Sample question — the centrepiece */}
