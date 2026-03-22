@@ -57,9 +57,17 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* Credibility strip */}
-          <ScrollReveal delay={1}>
-            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-6 text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 tracking-wide">
+          {/* Sample question — the centrepiece */}
+          <ScrollReveal delay={2}>
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
+              Try today&apos;s question
+            </p>
+            <SampleQuestion />
+          </ScrollReveal>
+
+          {/* Credibility strip — reinforcement after seeing the question */}
+          <ScrollReveal delay={3}>
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-6 text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 tracking-wide">
               <span>UKMLA-style SBAs</span>
               <span className="hidden sm:inline">·</span>
               <span>Detailed explanations</span>
@@ -68,14 +76,6 @@ export default function Home() {
               <span className="hidden sm:inline">·</span>
               <span>Free</span>
             </div>
-          </ScrollReveal>
-
-          {/* Sample question — the centrepiece */}
-          <ScrollReveal delay={2}>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
-              Try today&apos;s question
-            </p>
-            <SampleQuestion />
           </ScrollReveal>
         </div>
 
