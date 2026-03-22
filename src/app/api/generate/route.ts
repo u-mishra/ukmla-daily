@@ -239,15 +239,51 @@ export async function POST(request: NextRequest) {
     }
 
     let totalGenerated = 0;
+    let skippedConditions = 0;
+    const MAX_QUESTIONS_PER_CONDITION = 2;
+
+    // Fetch all existing non-rejected questions to check for duplicates
+    const { data: existingQuestions } = await supabase
+      .from('questions')
+      .select('vignette')
+      .in('status', ['pending', 'approved', 'sent']);
+
+    const existingVignettes = (existingQuestions || []).map(q =>
+      q.vignette.toLowerCase()
+    );
 
     for (const page of childPages) {
       try {
+        const conditionLower = page.title.toLowerCase();
+
+        // Count existing questions that mention this condition in the vignette
+        // Use keyword matching: split condition name into significant words
+        // (e.g. "Otitis Media" → ["otitis", "media"])
+        const keywords = conditionLower
+          .split(/[\s\-\/,]+/)
+          .filter(w => w.length > 2);
+
+        const existingCount = existingVignettes.filter(vignette =>
+          keywords.every(kw => vignette.includes(kw))
+        ).length;
+
+        if (existingCount >= MAX_QUESTIONS_PER_CONDITION) {
+          console.log(`Skipping "${page.title}" — already has ${existingCount} question(s)`);
+          skippedConditions++;
+          continue;
+        }
+
+        const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - existingCount;
+
         const content = await getPageContent(page.id);
         if (!content.trim()) continue;
 
         const questions = await generateQuestions(page.title, content);
 
-        for (const q of questions) {
+        // Only insert up to the number needed
+        const toInsert = questions.slice(0, questionsNeeded);
+
+        for (const q of toInsert) {
           const { error } = await supabase.from('questions').insert({
             specialty: q.specialty,
             difficulty: q.difficulty,
@@ -281,7 +317,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ message: `Generated ${totalGenerated} questions from ${childPages.length} conditions.`, count: totalGenerated });
+    const skippedMsg = skippedConditions > 0 ? ` Skipped ${skippedConditions} condition(s) that already have ${MAX_QUESTIONS_PER_CONDITION}+ questions.` : '';
+    return NextResponse.json({ message: `Generated ${totalGenerated} questions from ${childPages.length} conditions.${skippedMsg}`, count: totalGenerated });
   } catch (error) {
     console.error('Generate error:', error);
     return NextResponse.json({ error: 'Failed to generate questions.' }, { status: 500 });
