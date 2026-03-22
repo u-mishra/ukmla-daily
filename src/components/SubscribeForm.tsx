@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 
-export default function SubscribeForm({ id }: { id?: string }) {
+export default function SubscribeForm({ id, variant = 'default' }: { id?: string; variant?: 'default' | 'compact' }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -36,19 +36,19 @@ export default function SubscribeForm({ id }: { id?: string }) {
 
   return (
     <form id={id} onSubmit={handleSubmit} className="w-full">
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className={`flex gap-3 ${variant === 'compact' ? 'flex-col sm:flex-row' : 'flex-col sm:flex-row'}`}>
         <input
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setStatus('idle'); }}
           placeholder="your@email.com"
           required
-          className="flex-1 px-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-base min-h-[44px]"
+          className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-[15px] min-h-[44px]"
         />
         <button
           type="submit"
           disabled={status === 'loading'}
-          className="gradient-bg text-white font-semibold px-6 py-3.5 rounded-xl hover:opacity-90 transition-all disabled:opacity-60 whitespace-nowrap min-h-[44px] text-base shadow-lg shadow-purple-500/25"
+          className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold px-6 py-3 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-60 whitespace-nowrap min-h-[44px] text-[15px]"
         >
           {status === 'loading' ? (
             <span className="flex items-center justify-center gap-2">
@@ -60,7 +60,7 @@ export default function SubscribeForm({ id }: { id?: string }) {
       </div>
 
       {status === 'success' && (
-        <p className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">{message}</p>
+        <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{message}</p>
       )}
       {status === 'error' && (
         <p className="mt-3 text-sm text-red-500 font-medium">{message}</p>

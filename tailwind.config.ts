@@ -11,11 +11,10 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
-        serif: ["var(--font-newsreader)", "Georgia", "serif"],
       },
       borderRadius: {
         "2xl": "16px",
-        xl: "10px",
+        xl: "12px",
       },
     },
   },
