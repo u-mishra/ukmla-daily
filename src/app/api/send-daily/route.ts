@@ -207,40 +207,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Question marked as sent but no active subscribers.' });
     }
 
-    // Send emails in batches (Resend supports batch sending)
-    const batchSize = 50;
+    // Send emails sequentially with delay to respect Resend's 5 req/s rate limit
     let sentCount = 0;
     const errors: string[] = [];
 
-    for (let i = 0; i < subscribers.length; i += batchSize) {
-      const batch = subscribers.slice(i, i + batchSize);
-      const emailPromises = batch.map(async (sub) => {
-        try {
-          const { data, error } = await resend.emails.send({
-            from: 'UKMLA Daily <question@ukmladaily.co.uk>',
-            to: sub.email,
-            subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
-            html: dailyQuestionEmailHtml(questionWithDay, sub.email),
-          });
+    for (const sub of subscribers) {
+      try {
+        const { data, error } = await resend.emails.send({
+          from: 'UKMLA Daily <question@ukmladaily.co.uk>',
+          to: sub.email,
+          subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
+          html: dailyQuestionEmailHtml(questionWithDay, sub.email),
+        });
 
-          if (error) {
-            const msg = `Resend error for ${sub.email}: ${JSON.stringify(error)}`;
-            console.error(msg);
-            errors.push(msg);
-            return false;
-          }
-
-          console.log(`Sent to ${sub.email}, id: ${data?.id}`);
-          return true;
-        } catch (err) {
-          const msg = `Exception sending to ${sub.email}: ${err instanceof Error ? err.message : JSON.stringify(err)}`;
+        if (error) {
+          const msg = `Resend error for ${sub.email}: ${JSON.stringify(error)}`;
           console.error(msg);
           errors.push(msg);
-          return false;
+        } else {
+          console.log(`Sent to ${sub.email}, id: ${data?.id}`);
+          sentCount++;
         }
-      });
-      const results = await Promise.all(emailPromises);
-      sentCount += results.filter(Boolean).length;
+      } catch (err) {
+        const msg = `Exception sending to ${sub.email}: ${err instanceof Error ? err.message : JSON.stringify(err)}`;
+        console.error(msg);
+        errors.push(msg);
+      }
+
+      // 250ms delay between sends to stay under Resend's 5 req/s limit
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
 
     const response: Record<string, unknown> = {
