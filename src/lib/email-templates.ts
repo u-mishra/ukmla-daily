@@ -89,9 +89,23 @@ export function dailyQuestionEmailHtml(question: {
       </p>
       ${optionsHtml}
       <div style="text-align:center;margin-top:28px;">
-        <a href="${siteUrl}/answer/${question.id}" style="display:inline-block;padding:14px 40px;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:white;text-decoration:none;border-radius:10px;font-weight:600;font-size:16px;">
-          Reveal Answer →
-        </a>
+        <!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${siteUrl}/answer/${question.id}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="21%" strokecolor="#4F46E5" fillcolor="#4F46E5">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Reveal Answer →</center>
+        </v:roundrect>
+        <![endif]-->
+        <!--[if !mso]><!-->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            <td style="background-color:#4F46E5;border-radius:10px;text-align:center;">
+              <a href="${siteUrl}/answer/${question.id}" style="display:inline-block;padding:14px 40px;color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                Reveal Answer →
+              </a>
+            </td>
+          </tr>
+        </table>
+        <!--<![endif]-->
       </div>
     </div>
     <div style="text-align:center;padding:24px 0;">
