@@ -40,6 +40,32 @@ function useScrollReveal<T extends HTMLElement>() {
   return ref;
 }
 
+/* ─── Stagger children on scroll ─── */
+function useStaggerReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const children = el.querySelectorAll('[data-stagger]');
+          children.forEach((child, i) => {
+            const htmlChild = child as HTMLElement;
+            htmlChild.style.transitionDelay = `${i * 90}ms`;
+            htmlChild.classList.add('stagger-visible');
+          });
+          obs.unobserve(el);
+        }
+      },
+      { threshold: 0.15 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return ref;
+}
+
 /* ═══════════════════════════════════════ */
 /* ─── Main Page                       ─── */
 /* ═══════════════════════════════════════ */
@@ -54,7 +80,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#F5F5F7]">
-      {/* ──�� Nav ─── */}
+      {/* ─── Nav ─── */}
       <nav className={`nav-slide fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         navScrolled
           ? 'bg-[#F5F5F7]/80 backdrop-blur-xl border-b border-black/[0.06]'
@@ -71,32 +97,13 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ─── Hero ─── */}
       <HeroSection />
-
-      {/* ─── Product Demo ─── */}
       <DemoSection />
-
-      {/* ─── Customise ─── */}
       <CustomiseSection />
-
-      {/* ─── Signup ─── */}
       <SignupSection />
 
       {/* ─── Footer ─── */}
-      <footer className="bg-[#F5F5F7] border-t border-black/[0.06] py-10">
-        <div className="max-w-3xl mx-auto px-5 text-center">
-          <p className="font-serif-display text-[15px] italic text-[#86868B] mb-4">
-            Built by a medical student, for medical students.
-          </p>
-          <a href="/privacy" className="text-[12px] text-[#86868B] hover:text-[#1D1D1F] transition-colors">
-            Privacy Policy
-          </a>
-          <p className="text-[11px] text-[#86868B] max-w-lg mx-auto leading-relaxed mt-4">
-            {DISCLAIMER}
-          </p>
-        </div>
-      </footer>
+      <FooterSection />
     </main>
   );
 }
@@ -106,41 +113,26 @@ export default function Home() {
 /* ═══════════════════════════════════════ */
 function HeroSection() {
   return (
-    <section className="bg-[#F5F5F7] pt-28 sm:pt-36 pb-16 sm:pb-24">
+    <section className="bg-[#F5F5F7] pt-20 sm:pt-24 pb-8 sm:pb-12">
       <div className="max-w-3xl mx-auto px-5 text-center">
-        {/* Overline */}
-        <p className="stagger-in text-[13px] font-semibold tracking-[0.2em] uppercase text-[#86868B] mb-5"
+        <p className="stagger-in text-[13px] font-semibold tracking-[0.2em] uppercase text-[#86868B] mb-4"
            style={{ animationDelay: '0.2s' }}>
           UKMLA Daily
         </p>
 
-        {/* Headline */}
-        <h1 className="clip-reveal font-serif-display text-[clamp(2.5rem,7vw,4.5rem)] leading-[1.05] tracking-[-0.02em] text-[#1D1D1F] mb-6"
+        <h1 className="clip-reveal font-serif-display text-[clamp(2.5rem,7vw,4.5rem)] leading-[1.05] tracking-[-0.02em] text-[#1D1D1F] mb-4"
             style={{ animationDelay: '0.4s' }}>
           Daily SBAs. Straight<br className="hidden sm:block" /> to your inbox.
         </h1>
 
-        {/* Subtitle */}
-        <p className="stagger-in text-[17px] sm:text-[19px] text-[#86868B] leading-relaxed max-w-xl mx-auto mb-8"
+        <p className="stagger-in text-[17px] sm:text-[19px] text-[#86868B] leading-relaxed max-w-xl mx-auto mb-5"
            style={{ animationDelay: '0.6s' }}>
-          Choose your rotation. Wake up to high-yield revision at 7&nbsp;am — completely free.
+          Choose your rotation. Wake up to high-yield revision daily, completely free.
         </p>
 
-        {/* CTAs */}
-        <div className="stagger-in flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-12"
-             style={{ animationDelay: '0.8s' }}>
-          <a href="#subscribe" className="cta-link text-[17px] font-medium text-[#0066CC] hover:text-[#0055AA] transition-colors">
-            Subscribe free <span className="cta-chevron">›</span>
-          </a>
-          <a href="#demo" className="cta-link text-[17px] font-medium text-[#0066CC] hover:text-[#0055AA] transition-colors">
-            Try a question <span className="cta-chevron">›</span>
-          </a>
-        </div>
-
-        {/* Trust strip */}
         <p className="stagger-in text-[13px] text-[#86868B] tracking-wide"
-           style={{ animationDelay: '1.0s' }}>
-          5 specialties · UKMLA-style SBAs · Full explanations · Pick your rotation · Always free
+           style={{ animationDelay: '0.8s' }}>
+          UKMLA-style SBAs · Full explanations · Pick your rotation · Always free
         </p>
       </div>
     </section>
@@ -151,30 +143,27 @@ function HeroSection() {
 /* ─── Demo Section                    ─── */
 /* ═══════════════════════════════════════ */
 function DemoSection() {
-  const sectionRef = useScrollReveal<HTMLDivElement>();
+  const sectionRef = useStaggerReveal<HTMLDivElement>();
 
   return (
-    <section id="demo" className="bg-[#1D1D1F] relative overflow-hidden py-20 sm:py-28">
-      {/* Subtle radial glow */}
+    <section id="demo" className="bg-[#1D1D1F] relative overflow-hidden py-16 sm:py-24">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(0,102,204,0.08),transparent_70%)] pointer-events-none" />
 
-      <div ref={sectionRef} className="scroll-reveal relative z-10 max-w-6xl mx-auto px-5">
+      <div ref={sectionRef} className="relative z-10 max-w-6xl mx-auto px-5">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-          {/* Left text */}
           <div className="lg:w-[340px] flex-shrink-0 text-center lg:text-left">
-            <h2 className="font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-white mb-5">
+            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-white mb-5">
               This is what lands in your inbox.
             </h2>
-            <p className="text-[15px] text-[#86868B] leading-relaxed mb-6">
+            <p data-stagger className="stagger-item text-[15px] text-[#86868B] leading-relaxed mb-6">
               A clinical vignette. Five options. Select your answer, eliminate distractors, test your reasoning — then reveal the full explanation.
             </p>
-            <a href="#subscribe" className="cta-link text-[15px] font-medium text-[#2997FF] hover:text-[#6CB4FF] transition-colors">
+            <a data-stagger href="#subscribe" className="stagger-item cta-link text-[15px] font-medium text-[#2997FF] hover:text-[#6CB4FF] transition-colors inline-block">
               Start receiving <span className="cta-chevron">›</span>
             </a>
           </div>
 
-          {/* Right interactive card */}
-          <div className="flex-1 w-full max-w-[520px]">
+          <div data-stagger className="stagger-item flex-1 w-full max-w-[520px]">
             <InteractiveQuestionCard />
           </div>
         </div>
@@ -192,7 +181,6 @@ function InteractiveQuestionCard() {
   const [greetingVisible, setGreetingVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Stagger greeting in when card enters viewport
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
@@ -222,7 +210,6 @@ function InteractiveQuestionCard() {
 
   return (
     <div ref={cardRef} className="demo-stagger bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
-      {/* Window chrome */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-[#3A3A3C] border-b border-white/[0.06]">
         <div className="w-[10px] h-[10px] rounded-full bg-[#FF5F57]" />
         <div className="w-[10px] h-[10px] rounded-full bg-[#FEBC2E]" />
@@ -231,23 +218,19 @@ function InteractiveQuestionCard() {
       </div>
 
       <div className="p-5 sm:p-6">
-        {/* Greeting */}
         <div className={`transition-all duration-500 ${greetingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
           <p className="text-[15px] text-[#86868B] mb-4">Good morning —</p>
         </div>
 
-        {/* Badges */}
         <div className="flex gap-2 mb-4">
           <span className="px-2.5 py-1 bg-[#0066CC]/20 text-[#2997FF] rounded-md text-[11px] font-semibold">{q.specialty}</span>
           <span className="px-2.5 py-1 bg-[#FF9500]/20 text-[#FF9F0A] rounded-md text-[11px] font-semibold">{q.difficulty}</span>
         </div>
 
-        {/* Vignette */}
         <p className="font-serif-display text-[14px] sm:text-[15px] leading-relaxed text-[#E5E5EA] mb-5">
           {q.vignette}
         </p>
 
-        {/* Options */}
         <div className="space-y-2">
           {q.options.map((opt, i) => {
             const isCorrect = opt.letter === q.correct;
@@ -300,7 +283,6 @@ function InteractiveQuestionCard() {
           })}
         </div>
 
-        {/* Hint / Submit */}
         {!revealed && !selected && (
           <p className="breathe text-center text-[12px] text-[#86868B] mt-4">Pick an answer</p>
         )}
@@ -314,7 +296,6 @@ function InteractiveQuestionCard() {
           </button>
         )}
 
-        {/* Explanation */}
         {revealed && (
           <div className="expand-in mt-4 p-4 rounded-xl bg-[#1C3A2A] border border-[#30D158]/20">
             <p className="text-[11px] font-semibold text-[#30D158] uppercase tracking-wider mb-2">Explanation</p>
@@ -330,7 +311,8 @@ function InteractiveQuestionCard() {
 /* ─── Customise Section               ─── */
 /* ═══════════════════════════════════════ */
 function CustomiseSection() {
-  const sectionRef = useScrollReveal<HTMLDivElement>();
+  const leftRef = useStaggerReveal<HTMLDivElement>();
+  const rightRef = useStaggerReveal<HTMLDivElement>();
   const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set(['all']));
 
   const toggleChip = (chip: string) => {
@@ -351,19 +333,19 @@ function CustomiseSection() {
   };
 
   return (
-    <section className="bg-[#F5F5F7] py-20 sm:py-28">
-      <div ref={sectionRef} className="scroll-reveal max-w-5xl mx-auto px-5">
+    <section className="bg-[#F5F5F7] py-16 sm:py-24">
+      <div className="max-w-5xl mx-auto px-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
           {/* Left — chip grid */}
-          <div>
-            <h2 className="font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-6">
+          <div ref={leftRef}>
+            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-6">
               Pick your rotation.
             </h2>
             <div className="flex flex-wrap gap-2.5">
-              {/* All topics chip */}
               <button
+                data-stagger
                 onClick={() => toggleChip('all')}
-                className={`px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
+                className={`stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
                   selectedChips.has('all')
                     ? 'bg-[#1D1D1F] text-white'
                     : 'bg-white text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#86868B]'
@@ -374,8 +356,9 @@ function CustomiseSection() {
               {SPECIALTIES.map(s => (
                 <button
                   key={s}
+                  data-stagger
                   onClick={() => toggleChip(s)}
-                  className={`px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
+                  className={`stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
                     selectedChips.has(s)
                       ? 'bg-[#1D1D1F] text-white'
                       : 'bg-white text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#86868B]'
@@ -385,29 +368,25 @@ function CustomiseSection() {
                 </button>
               ))}
             </div>
-            <p className="text-[12px] text-[#86868B] mt-4">
+            <p data-stagger className="stagger-item text-[12px] text-[#86868B] mt-4">
               Customise your specialties after subscribing.
             </p>
           </div>
 
           {/* Right — description */}
-          <div className="md:pt-2">
-            <h3 className="font-serif-display text-[1.5rem] leading-[1.2] text-[#1D1D1F] mb-4">
+          <div ref={rightRef} className="md:pt-2">
+            <h3 data-stagger className="stagger-item font-serif-display text-[1.5rem] leading-[1.2] text-[#1D1D1F] mb-4">
               One question, every morning.
             </h3>
-            <p className="text-[15px] text-[#86868B] leading-relaxed mb-6">
+            <p data-stagger className="stagger-item text-[15px] text-[#86868B] leading-relaxed mb-6">
               A clinical vignette with five options, written to match the style and difficulty of the real UKMLA Applied Knowledge Test. Select your answer, eliminate distractors, then reveal the full explanation with guidelines.
             </p>
             <div className="flex gap-8">
-              <div>
-                <p className="text-[28px] font-semibold text-[#1D1D1F]">5</p>
-                <p className="text-[12px] text-[#86868B]">Specialties</p>
-              </div>
-              <div>
+              <div data-stagger className="stagger-item">
                 <p className="text-[28px] font-semibold text-[#1D1D1F]">~2 min</p>
                 <p className="text-[12px] text-[#86868B]">Per question</p>
               </div>
-              <div>
+              <div data-stagger className="stagger-item">
                 <p className="text-[28px] font-semibold text-[#1D1D1F]">£0</p>
                 <p className="text-[12px] text-[#86868B]">Always</p>
               </div>
@@ -423,7 +402,7 @@ function CustomiseSection() {
 /* ─── Signup Section                  ─── */
 /* ═══════════════════════════════════════ */
 function SignupSection() {
-  const sectionRef = useScrollReveal<HTMLDivElement>();
+  const sectionRef = useStaggerReveal<HTMLDivElement>();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -455,46 +434,48 @@ function SignupSection() {
   }, [email]);
 
   return (
-    <section id="subscribe" className="bg-[#F5F5F7] py-20 sm:py-28">
-      <div ref={sectionRef} className="scroll-reveal max-w-xl mx-auto px-5 text-center">
-        <h2 className="clip-reveal font-serif-display text-[clamp(2rem,5vw,3rem)] leading-[1.1] text-[#1D1D1F] mb-3">
+    <section id="subscribe" className="bg-[#F5F5F7] py-16 sm:py-24">
+      <div ref={sectionRef} className="max-w-xl mx-auto px-5 text-center">
+        <h2 data-stagger className="stagger-item font-serif-display text-[clamp(2rem,5vw,3rem)] leading-[1.1] text-[#1D1D1F] mb-3">
           Start tomorrow morning.
         </h2>
-        <p className="stagger-in text-[15px] text-[#86868B] mb-10" style={{ animationDelay: '0.2s' }}>
+        <p data-stagger className="stagger-item text-[15px] text-[#86868B] mb-10">
           Free forever. Unsubscribe anytime.
         </p>
 
         {status !== 'success' && (
-          <form
-            onSubmit={handleSubmit}
-            className={`transition-all duration-300 ${formVisible ? '' : 'shrink-away pointer-events-none'}`}
-          >
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setStatus('idle'); }}
-                placeholder="your@email.com"
-                required
-                className="flex-1 px-4 py-3.5 rounded-xl border border-[#D2D2D7] bg-white text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0066CC]/30 focus:border-[#0066CC] transition-all text-[16px] min-h-[44px]"
-              />
-              <button
-                type="submit"
-                disabled={status === 'loading'}
-                className="btn-shine bg-[#1D1D1F] text-white font-semibold px-8 py-3.5 rounded-xl transition-all min-h-[44px] text-[15px] disabled:opacity-60 active:scale-[0.98]"
-              >
-                {status === 'loading' ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    Subscribing...
-                  </span>
-                ) : 'Subscribe'}
-              </button>
-            </div>
-            {status === 'error' && (
-              <p className="mt-3 text-[13px] text-[#FF3B30] font-medium">{errorMsg}</p>
-            )}
-          </form>
+          <div data-stagger className="stagger-item">
+            <form
+              onSubmit={handleSubmit}
+              className={`transition-all duration-300 ${formVisible ? '' : 'shrink-away pointer-events-none'}`}
+            >
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setStatus('idle'); }}
+                  placeholder="your@email.com"
+                  required
+                  className="flex-1 px-4 py-3.5 rounded-xl border border-[#D2D2D7] bg-white text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0066CC]/30 focus:border-[#0066CC] transition-all text-[16px] min-h-[44px]"
+                />
+                <button
+                  type="submit"
+                  disabled={status === 'loading'}
+                  className="btn-shine bg-[#1D1D1F] text-white font-semibold px-8 py-3.5 rounded-xl transition-all min-h-[44px] text-[15px] disabled:opacity-60 active:scale-[0.98]"
+                >
+                  {status === 'loading' ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                      Subscribing...
+                    </span>
+                  ) : 'Subscribe'}
+                </button>
+              </div>
+              {status === 'error' && (
+                <p className="mt-3 text-[13px] text-[#FF3B30] font-medium">{errorMsg}</p>
+              )}
+            </form>
+          </div>
         )}
 
         {status === 'success' && (
@@ -504,10 +485,32 @@ function SignupSection() {
           </div>
         )}
 
-        <p className="mt-10 text-[12px] text-[#86868B]">
+        <p data-stagger className="stagger-item mt-10 text-[12px] text-[#86868B]">
           Join medical students across the UK.
         </p>
       </div>
     </section>
+  );
+}
+
+/* ═══════════════════════════════════════ */
+/* ─── Footer                          ─── */
+/* ═══════════════════════════════════════ */
+function FooterSection() {
+  const ref = useScrollReveal<HTMLElement>();
+  return (
+    <footer ref={ref} className="scroll-reveal bg-[#F5F5F7] border-t border-black/[0.06] py-10">
+      <div className="max-w-3xl mx-auto px-5 text-center">
+        <p className="font-serif-display text-[15px] italic text-[#86868B] mb-4">
+          Built by a medical student, for medical students.
+        </p>
+        <a href="/privacy" className="text-[12px] text-[#86868B] hover:text-[#1D1D1F] transition-colors">
+          Privacy Policy
+        </a>
+        <p className="text-[11px] text-[#86868B] max-w-lg mx-auto leading-relaxed mt-4">
+          {DISCLAIMER}
+        </p>
+      </div>
+    </footer>
   );
 }
