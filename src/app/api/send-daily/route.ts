@@ -5,6 +5,8 @@ import { dailyQuestionEmailHtml } from '@/lib/email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const DEFAULT_SPECIALTIES = ['ENT', 'Haematology', 'Neurology', 'Renal', 'Infectious Diseases'];
+
 interface Question {
   id: string;
   specialty: string;
@@ -23,43 +25,46 @@ interface Question {
   created_at: string;
 }
 
-/**
- * Smart question picker:
- * 1. Never same specialty as yesterday
- * 2. Never same specialty within the past 7 days if alternatives exist
- * 3. Prefer least-recently-sent specialties (maximise variety)
- * 4. Among candidates for a specialty, prefer questions that test a different
- *    aspect than the most recent question from that same specialty
- */
-async function pickNextQuestion(): Promise<Question | null> {
-  // Get all approved unsent questions
-  const { data: candidates } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('status', 'approved')
-    .is('sent_date', null)
-    .order('created_at', { ascending: true });
+interface Subscriber {
+  id: string;
+  email: string;
+  preferences: { specialties?: string[] } | null;
+  preferences_token: string;
+}
 
-  if (!candidates || candidates.length === 0) return null;
+/**
+ * Pick the best question for a specific subscriber, considering:
+ * 1. Their specialty preferences
+ * 2. Questions they've already received (never repeat)
+ * 3. Smart scheduling (variety in specialty, question type)
+ */
+async function pickQuestionForSubscriber(
+  subscriber: Subscriber,
+  allApproved: Question[],
+  globalRecentlySent: Array<{ specialty: string; vignette: string; sent_date: string }>
+): Promise<Question | null> {
+  const preferredSpecialties = subscriber.preferences?.specialties || DEFAULT_SPECIALTIES;
+
+  // Get questions this subscriber has already received
+  const { data: history } = await supabase
+    .from('subscriber_question_history')
+    .select('question_id')
+    .eq('subscriber_id', subscriber.id);
+
+  const receivedIds = new Set((history || []).map(h => h.question_id));
+
+  // Filter: must match subscriber's specialties AND not already received
+  const candidates = allApproved.filter(
+    q => preferredSpecialties.includes(q.specialty) && !receivedIds.has(q.id)
+  );
+
+  if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  // Get recently sent questions (last 30 days for LRU tracking)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const { data: recentlySent } = await supabase
-    .from('questions')
-    .select('specialty, vignette, sent_date')
-    .eq('status', 'sent')
-    .gte('sent_date', thirtyDaysAgo.toISOString().split('T')[0])
-    .order('sent_date', { ascending: false });
-
-  const sent = recentlySent || [];
-
-  // Yesterday's specialty (must avoid)
+  // Smart scoring (same algorithm as before, but on filtered candidates)
+  const sent = globalRecentlySent;
   const yesterdaySpecialty = sent.length > 0 ? sent[0].specialty : null;
 
-  // Specialties sent in the last 7 days (prefer to avoid)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const recentSpecialties = new Set(
@@ -68,7 +73,6 @@ async function pickNextQuestion(): Promise<Question | null> {
       .map(q => q.specialty)
   );
 
-  // Build a map: specialty → last sent date (for LRU ordering)
   const lastSentMap = new Map<string, string>();
   for (const q of sent) {
     if (!lastSentMap.has(q.specialty)) {
@@ -76,78 +80,43 @@ async function pickNextQuestion(): Promise<Question | null> {
     }
   }
 
-  // Score each candidate: lower score = better pick
   const scored = candidates.map(q => {
     let score = 0;
-
-    // Hard block: same specialty as yesterday → very high score
-    if (q.specialty === yesterdaySpecialty) {
-      score += 10000;
-    }
-
-    // Penalise specialties sent in the last 7 days
-    if (recentSpecialties.has(q.specialty)) {
-      score += 1000;
-    }
-
-    // LRU: prefer specialties that haven't been sent recently
-    // Never-sent specialties get score 0 (best), recently-sent get higher scores
+    if (q.specialty === yesterdaySpecialty) score += 10000;
+    if (recentSpecialties.has(q.specialty)) score += 1000;
     const lastSent = lastSentMap.get(q.specialty);
     if (lastSent) {
       const daysSince = Math.floor(
         (Date.now() - new Date(lastSent).getTime()) / (1000 * 60 * 60 * 24)
       );
-      // More recently sent = higher penalty (inverse of days since)
       score += Math.max(0, 100 - daysSince);
     }
-    // Never-sent specialties get no LRU penalty (score += 0)
-
     return { question: q, score };
   });
 
-  // Sort by score (ascending = best first)
   scored.sort((a, b) => a.score - b.score);
 
-  // Get the best score tier (all candidates with the same best score)
   const bestScore = scored[0].score;
+  if (bestScore >= 10000) return scored[0].question;
 
-  // If best score is 10000+, it means ALL candidates are yesterday's specialty
-  // In that case, just pick the first one (no alternative exists)
-  if (bestScore >= 10000) {
-    return scored[0].question;
-  }
-
-  // Filter to candidates that don't have the hard-block penalty
   const viable = scored.filter(s => s.score < 10000);
-
-  // Among viable candidates with similar scores, check for vignette diversity
-  // within the same specialty (avoid testing same aspect back-to-back)
   const bestViable = viable[0];
 
-  // Find if there's a recently sent question from the same specialty
+  // Vignette diversity within same specialty
   const recentSameSpecialty = sent.find(q => q.specialty === bestViable.question.specialty);
-
   if (recentSameSpecialty && viable.length > 1) {
-    // Check if there are other candidates from the same specialty
-    // that test a different aspect (simple heuristic: different question stem keyword)
     const sameSpecialtyCandidates = viable.filter(
       s => s.question.specialty === bestViable.question.specialty && s.score === bestViable.score
     );
-
     if (sameSpecialtyCandidates.length > 1) {
-      // Pick the one whose vignette is most different from the recently sent one
       const recentVignette = recentSameSpecialty.vignette.toLowerCase();
       const stemKeywords = ['diagnosis', 'investigation', 'management', 'treatment', 'mechanism', 'complication', 'next step'];
-
       const recentType = stemKeywords.find(k => recentVignette.includes(k)) || '';
-
-      // Prefer a candidate that tests a different type
       const different = sameSpecialtyCandidates.find(s => {
         const v = s.question.vignette.toLowerCase();
         const type = stemKeywords.find(k => v.includes(k)) || '';
         return type !== recentType;
       });
-
       if (different) return different.question;
     }
   }
@@ -170,12 +139,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Smart question selection
-    const question = await pickNextQuestion();
+    // Get all approved unsent questions
+    const { data: allApproved } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: true });
 
-    if (!question) {
+    if (!allApproved || allApproved.length === 0) {
       return NextResponse.json({ error: 'No approved questions available to send.' }, { status: 404 });
     }
+
+    // Get recently sent questions for smart scheduling
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data: recentlySent } = await supabase
+      .from('questions')
+      .select('specialty, vignette, sent_date')
+      .eq('status', 'sent')
+      .gte('sent_date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('sent_date', { ascending: false });
+
+    const globalRecentlySent = recentlySent || [];
 
     // Calculate day number
     const { count } = await supabase
@@ -185,39 +170,41 @@ export async function POST(request: NextRequest) {
 
     const dayNumber = (count || 0) + 1;
 
-    // Update question with day number and sent status
-    await supabase
-      .from('questions')
-      .update({
-        status: 'sent',
-        sent_date: new Date().toISOString().split('T')[0],
-        day_number: dayNumber,
-      })
-      .eq('id', question.id);
-
-    const questionWithDay = { ...question, day_number: dayNumber };
-
-    // Get all active subscribers
+    // Get all active subscribers with preferences
     const { data: subscribers } = await supabase
       .from('subscribers')
-      .select('email')
+      .select('id, email, preferences, preferences_token')
       .eq('is_active', true);
 
     if (!subscribers || subscribers.length === 0) {
-      return NextResponse.json({ message: 'Question marked as sent but no active subscribers.' });
+      return NextResponse.json({ message: 'No active subscribers.' });
     }
 
-    // Send emails sequentially with delay to respect Resend's 5 req/s rate limit
+    // Track which questions we've assigned so we can mark them sent
+    const questionsUsed = new Map<string, Question>(); // question.id -> question
     let sentCount = 0;
+    let skippedCount = 0;
     const errors: string[] = [];
 
-    for (const sub of subscribers) {
+    for (const sub of subscribers as Subscriber[]) {
       try {
+        const question = await pickQuestionForSubscriber(sub, allApproved, globalRecentlySent);
+
+        if (!question) {
+          // Subscriber has received all available questions in their specialties
+          skippedCount++;
+          continue;
+        }
+
+        questionsUsed.set(question.id, question);
+
+        const questionWithDay = { ...question, day_number: dayNumber };
+
         const { data, error } = await resend.emails.send({
           from: 'UKMLA Daily <question@ukmladaily.co.uk>',
           to: sub.email,
           subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
-          html: dailyQuestionEmailHtml(questionWithDay, sub.email),
+          html: dailyQuestionEmailHtml(questionWithDay, sub.email, sub.preferences_token),
         });
 
         if (error) {
@@ -225,11 +212,17 @@ export async function POST(request: NextRequest) {
           console.error(msg);
           errors.push(msg);
         } else {
-          console.log(`Sent to ${sub.email}, id: ${data?.id}`);
+          console.log(`Sent to ${sub.email} (q: ${question.id}), id: ${data?.id}`);
           sentCount++;
+
+          // Log to subscriber_question_history
+          await supabase.from('subscriber_question_history').insert({
+            subscriber_id: sub.id,
+            question_id: question.id,
+          });
         }
       } catch (err) {
-        const msg = `Exception sending to ${sub.email}: ${err instanceof Error ? err.message : JSON.stringify(err)}`;
+        const msg = `Exception for ${sub.email}: ${err instanceof Error ? err.message : JSON.stringify(err)}`;
         console.error(msg);
         errors.push(msg);
       }
@@ -238,10 +231,21 @@ export async function POST(request: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
 
+    // Mark all used questions as sent (update status + day_number + sent_date)
+    for (const [qId] of questionsUsed) {
+      await supabase
+        .from('questions')
+        .update({
+          status: 'sent',
+          sent_date: new Date().toISOString().split('T')[0],
+          day_number: dayNumber,
+        })
+        .eq('id', qId);
+    }
+
     const response: Record<string, unknown> = {
-      message: `Day ${dayNumber} (${question.specialty}) sent to ${sentCount}/${subscribers.length} subscribers.`,
-      questionId: question.id,
-      specialty: question.specialty,
+      message: `Day ${dayNumber} sent to ${sentCount}/${subscribers.length} subscribers. ${questionsUsed.size} unique question(s) used.${skippedCount > 0 ? ` ${skippedCount} subscriber(s) skipped (no new questions).` : ''}`,
+      questionCount: questionsUsed.size,
       dayNumber,
     };
 

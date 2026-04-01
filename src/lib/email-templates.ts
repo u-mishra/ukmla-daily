@@ -2,7 +2,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ukmladaily.co.uk';
 
 const DISCLAIMER = 'UKMLA Daily is a revision aid and is not a substitute for official study materials, clinical guidelines, or professional medical advice. Always verify clinical information with approved sources. Questions are generated for educational purposes only.';
 
-export function welcomeEmailHtml(email: string): string {
+export function welcomeEmailHtml(email: string, preferencesToken: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -23,6 +23,9 @@ export function welcomeEmailHtml(email: string): string {
       <p style="color:#4b5563;font-size:16px;line-height:1.6;margin:0 0 16px;">
         Each email takes about <strong>2 minutes</strong> — read the clinical vignette, pick your answer, then tap to reveal the explanation.
       </p>
+      <p style="color:#4b5563;font-size:16px;line-height:1.6;margin:0 0 16px;">
+        We currently cover <strong>ENT, Haematology, Neurology, Renal, and Infectious Diseases</strong>. You can customise which specialties you receive via the link in any email footer.
+      </p>
       <p style="color:#4b5563;font-size:16px;line-height:1.6;margin:0 0 24px;">
         Consistency is everything. Build the habit, and you'll be amazed how much sticks.
       </p>
@@ -32,7 +35,11 @@ export function welcomeEmailHtml(email: string): string {
     </div>
     <div style="text-align:center;padding:24px 0;">
       <p style="color:#9ca3af;font-size:12px;line-height:1.5;margin:0 0 8px;">${DISCLAIMER}</p>
-      <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(email)}" style="color:#9ca3af;font-size:12px;">Unsubscribe</a>
+      <div style="margin-top:8px;">
+        <a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#6366f1;font-size:12px;text-decoration:underline;">Manage your specialties</a>
+        <span style="color:#d1d5db;margin:0 6px;">·</span>
+        <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(email)}" style="color:#9ca3af;font-size:12px;">Unsubscribe</a>
+      </div>
     </div>
   </div>
 </body>
@@ -50,7 +57,7 @@ export function dailyQuestionEmailHtml(question: {
   option_d: string;
   option_e: string;
   day_number: number;
-}, subscriberEmail: string): string {
+}, subscriberEmail: string, preferencesToken?: string): string {
   const options = [
     { letter: 'A', text: question.option_a },
     { letter: 'B', text: question.option_b },
@@ -65,6 +72,11 @@ export function dailyQuestionEmailHtml(question: {
       ${opt.text}
     </div>
   `).join('');
+
+  const preferencesLink = preferencesToken
+    ? `<a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#6366f1;font-size:12px;text-decoration:underline;">Manage your specialties</a>
+        <span style="color:#d1d5db;margin:0 6px;">·</span>`
+    : '';
 
   return `
 <!DOCTYPE html>
@@ -110,7 +122,10 @@ export function dailyQuestionEmailHtml(question: {
     </div>
     <div style="text-align:center;padding:24px 0;">
       <p style="color:#9ca3af;font-size:12px;line-height:1.5;margin:0 0 8px;">${DISCLAIMER}</p>
-      <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}" style="color:#9ca3af;font-size:12px;">Unsubscribe</a>
+      <div style="margin-top:8px;">
+        ${preferencesLink}
+        <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}" style="color:#9ca3af;font-size:12px;">Unsubscribe</a>
+      </div>
     </div>
   </div>
 </body>
