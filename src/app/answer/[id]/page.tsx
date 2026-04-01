@@ -4,6 +4,7 @@ import AnswerClient from './AnswerClient';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ email?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -34,8 +35,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function AnswerPage({ params }: Props) {
+export default async function AnswerPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { email } = await searchParams;
+
   const { data: question, error } = await supabase
     .from('questions')
     .select('*')
@@ -54,22 +57,10 @@ export default async function AnswerPage({ params }: Props) {
     );
   }
 
-  // Get initial stats
-  const { data: clicks } = await supabase
-    .from('answer_clicks')
-    .select('got_it_right')
-    .eq('question_id', id)
-    .not('got_it_right', 'is', null);
-
-  const total = clicks?.length || 0;
-  const correct = clicks?.filter(c => c.got_it_right).length || 0;
-  const initialPercentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-
   return (
     <AnswerClient
       question={question}
-      initialPercentage={initialPercentage}
-      initialTotal={total}
+      email={email ? decodeURIComponent(email) : null}
     />
   );
 }

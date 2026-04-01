@@ -29,6 +29,18 @@ interface Question {
   created_at: string;
 }
 
+interface Analytics {
+  overall: { totalResponses: number; overallPercent: number; avgTimeSeconds: number };
+  specialtyBreakdown: Array<{ specialty: string; total: number; correct: number; percent: number }>;
+  questionBreakdown: Array<{
+    questionId: string; specialty: string; difficulty: string; vignette: string;
+    correctAnswer: string; total: number; correct: number; percent: number;
+    mostCommonWrong: { letter: string; count: number } | null;
+    distribution: Record<string, number>;
+  }>;
+  subscriberBreakdown: Array<{ email: string; total: number; correct: number; percent: number }>;
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [authed, setAuthed] = useState(false);
@@ -37,8 +49,10 @@ export default function AdminPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [tab, setTab] = useState<'pending' | 'approved'>('pending');
+  const [tab, setTab] = useState<'pending' | 'approved' | 'analytics'>('pending');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('All');
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const fetchStats = useCallback(async () => {
     const res = await fetch('/api/admin/stats', {
@@ -52,6 +66,7 @@ export default function AdminPage() {
   }, [password]);
 
   const fetchQuestions = useCallback(async () => {
+    if (tab === 'analytics') return;
     const res = await fetch('/api/admin/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -64,20 +79,35 @@ export default function AdminPage() {
     }
   }, [password, tab]);
 
+  const fetchAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    const res = await fetch('/api/admin/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (res.ok) {
+      setAnalytics(await res.json());
+    }
+    setAnalyticsLoading(false);
+  }, [password]);
+
   useEffect(() => {
     if (authed) {
       fetchStats();
-      fetchQuestions();
+      if (tab === 'analytics') {
+        fetchAnalytics();
+      } else {
+        fetchQuestions();
+      }
     }
-  }, [authed, tab, fetchStats, fetchQuestions]);
+  }, [authed, tab, fetchStats, fetchQuestions, fetchAnalytics]);
 
-  // Filtered questions by specialty
   const filteredQuestions = useMemo(() => {
     if (specialtyFilter === 'All') return questions;
     return questions.filter(q => q.specialty === specialtyFilter);
   }, [questions, specialtyFilter]);
 
-  // Counts per specialty for the current tab
   const specialtyCounts = useMemo(() => {
     const counts: Record<string, number> = { All: questions.length };
     for (const s of ALL_SPECIALTIES) counts[s] = 0;
@@ -87,7 +117,6 @@ export default function AdminPage() {
     return counts;
   }, [questions]);
 
-  // Reset selection when filter changes
   useEffect(() => {
     setSelectedIds(new Set());
   }, [specialtyFilter]);
@@ -284,9 +313,9 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Status Tabs (Pending / Approved) */}
+        {/* Main Tabs (Pending / Approved / Analytics) */}
         <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1 w-fit">
-          {(['pending', 'approved'] as const).map(t => (
+          {(['pending', 'approved', 'analytics'] as const).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setSpecialtyFilter('All'); }}
@@ -294,132 +323,253 @@ export default function AdminPage() {
                 tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)} ({t === 'pending' ? stats?.pendingReview || 0 : stats?.approvedQueue || 0})
+              {t === 'analytics' ? 'Analytics' : `${t.charAt(0).toUpperCase() + t.slice(1)} (${t === 'pending' ? stats?.pendingReview || 0 : stats?.approvedQueue || 0})`}
             </button>
           ))}
         </div>
 
-        {/* Specialty Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {['All', ...ALL_SPECIALTIES].map(s => {
-            const count = specialtyCounts[s] || 0;
-            const isActive = specialtyFilter === s;
-            return (
-              <button
-                key={s}
-                onClick={() => setSpecialtyFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                  isActive
-                    ? 'bg-purple-600 text-white border-purple-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-700'
-                }`}
-              >
-                {s} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Bulk actions */}
-        {filteredQuestions.length > 0 && (
-          <div className="flex items-center gap-3 mb-4">
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input
-                type="checkbox"
-                checked={selectedIds.size === filteredQuestions.length && filteredQuestions.length > 0}
-                onChange={toggleSelectAll}
-                className="rounded"
-              />
-              Select all ({filteredQuestions.length})
-            </label>
-            {selectedIds.size > 0 && tab === 'pending' && (
-              <>
-                <button
-                  onClick={() => handleApprove(Array.from(selectedIds))}
-                  className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-                >
-                  Approve ({selectedIds.size})
-                </button>
-                <button
-                  onClick={() => handleReject(Array.from(selectedIds))}
-                  className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
-                >
-                  Reject ({selectedIds.size})
-                </button>
-              </>
-            )}
-            {selectedIds.size > 0 && tab === 'approved' && (
-              <button
-                onClick={() => handleRevert(Array.from(selectedIds))}
-                className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
-              >
-                Revert to Pending ({selectedIds.size})
-              </button>
-            )}
-          </div>
+        {/* Analytics Tab */}
+        {tab === 'analytics' && (
+          <AnalyticsPanel analytics={analytics} loading={analyticsLoading} />
         )}
 
-        {/* Questions list */}
-        <div className="space-y-4">
-          {filteredQuestions.length === 0 && (
-            <p className="text-center text-gray-500 py-12">
-              No {specialtyFilter !== 'All' ? `${specialtyFilter} ` : ''}{tab} questions
-            </p>
-          )}
-          {filteredQuestions.map(q => (
-            <div key={q.id} className="bg-white rounded-xl border shadow-sm p-5">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(q.id)}
-                  onChange={() => toggleSelect(q.id)}
-                  className="mt-1 rounded"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">{q.specialty}</span>
-                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">{q.difficulty}</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Answer: {q.correct_answer}</span>
-                  </div>
-                  <p className="text-sm text-gray-800 mb-2">{q.vignette}</p>
-                  <div className="text-sm text-gray-600 space-y-1 mb-2">
-                    <p><strong>A:</strong> {q.option_a}</p>
-                    <p><strong>B:</strong> {q.option_b}</p>
-                    <p><strong>C:</strong> {q.option_c}</p>
-                    <p><strong>D:</strong> {q.option_d}</p>
-                    <p><strong>E:</strong> {q.option_e}</p>
-                  </div>
-                  <p className="text-xs text-gray-500 italic">{q.explanation}</p>
-                </div>
-                <div className="flex flex-col gap-2 flex-shrink-0">
-                  {tab === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleApprove([q.id])}
-                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject([q.id])}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {tab === 'approved' && (
+        {/* Questions Tabs */}
+        {tab !== 'analytics' && (
+          <>
+            {/* Specialty Filter Tabs */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {['All', ...ALL_SPECIALTIES].map(s => {
+                const count = specialtyCounts[s] || 0;
+                const isActive = specialtyFilter === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSpecialtyFilter(s)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                      isActive
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-700'
+                    }`}
+                  >
+                    {s} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bulk actions */}
+            {filteredQuestions.length > 0 && (
+              <div className="flex items-center gap-3 mb-4">
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === filteredQuestions.length && filteredQuestions.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded"
+                  />
+                  Select all ({filteredQuestions.length})
+                </label>
+                {selectedIds.size > 0 && tab === 'pending' && (
+                  <>
                     <button
-                      onClick={() => handleRevert([q.id])}
-                      className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200"
+                      onClick={() => handleApprove(Array.from(selectedIds))}
+                      className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
                     >
-                      Revert to Pending
+                      Approve ({selectedIds.size})
                     </button>
+                    <button
+                      onClick={() => handleReject(Array.from(selectedIds))}
+                      className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                    >
+                      Reject ({selectedIds.size})
+                    </button>
+                  </>
+                )}
+                {selectedIds.size > 0 && tab === 'approved' && (
+                  <button
+                    onClick={() => handleRevert(Array.from(selectedIds))}
+                    className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
+                  >
+                    Revert to Pending ({selectedIds.size})
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Questions list */}
+            <div className="space-y-4">
+              {filteredQuestions.length === 0 && (
+                <p className="text-center text-gray-500 py-12">
+                  No {specialtyFilter !== 'All' ? `${specialtyFilter} ` : ''}{tab} questions
+                </p>
+              )}
+              {filteredQuestions.map(q => (
+                <div key={q.id} className="bg-white rounded-xl border shadow-sm p-5">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(q.id)}
+                      onChange={() => toggleSelect(q.id)}
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">{q.specialty}</span>
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">{q.difficulty}</span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Answer: {q.correct_answer}</span>
+                      </div>
+                      <p className="text-sm text-gray-800 mb-2">{q.vignette}</p>
+                      <div className="text-sm text-gray-600 space-y-1 mb-2">
+                        <p><strong>A:</strong> {q.option_a}</p>
+                        <p><strong>B:</strong> {q.option_b}</p>
+                        <p><strong>C:</strong> {q.option_c}</p>
+                        <p><strong>D:</strong> {q.option_d}</p>
+                        <p><strong>E:</strong> {q.option_e}</p>
+                      </div>
+                      <p className="text-xs text-gray-500 italic">{q.explanation}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      {tab === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleApprove([q.id])}
+                            className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject([q.id])}
+                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      {tab === 'approved' && (
+                        <button
+                          onClick={() => handleRevert([q.id])}
+                          className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200"
+                        >
+                          Revert to Pending
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Analytics Panel Component ─── */
+function AnalyticsPanel({ analytics, loading }: { analytics: Analytics | null; loading: boolean }) {
+  if (loading) {
+    return <p className="text-center text-gray-500 py-12">Loading analytics...</p>;
+  }
+
+  if (!analytics || analytics.overall.totalResponses === 0) {
+    return <p className="text-center text-gray-500 py-12">No response data yet. Analytics will appear once subscribers start answering questions.</p>;
+  }
+
+  const { overall, specialtyBreakdown, questionBreakdown, subscriberBreakdown } = analytics;
+  const hardest = questionBreakdown.slice(0, 10);
+  const mostEngaged = subscriberBreakdown.slice(0, 15);
+
+  return (
+    <div className="space-y-6">
+      {/* Overall stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl p-5 shadow-sm border">
+          <p className="text-3xl font-bold text-indigo-600">{overall.totalResponses}</p>
+          <p className="text-xs text-gray-500">Total Responses</p>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border">
+          <p className="text-3xl font-bold text-green-600">{overall.overallPercent}%</p>
+          <p className="text-xs text-gray-500">Overall Correct Rate</p>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border">
+          <p className="text-3xl font-bold text-orange-600">{overall.avgTimeSeconds}s</p>
+          <p className="text-xs text-gray-500">Avg Time to Answer</p>
+        </div>
+      </div>
+
+      {/* Per-specialty */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <h3 className="font-semibold text-gray-900 mb-3">Correct Rate by Specialty</h3>
+        <div className="space-y-2">
+          {specialtyBreakdown.map(s => (
+            <div key={s.specialty} className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700 w-40 flex-shrink-0">{s.specialty}</span>
+              <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 rounded-full transition-all"
+                  style={{ width: `${s.percent}%` }}
+                />
+              </div>
+              <span className="text-sm font-bold text-gray-700 w-16 text-right">{s.percent}%</span>
+              <span className="text-xs text-gray-400 w-16 text-right">({s.total})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hardest questions */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <h3 className="font-semibold text-gray-900 mb-3">Hardest Questions (lowest % correct)</h3>
+        <div className="space-y-3">
+          {hardest.map((q, i) => (
+            <div key={q.questionId} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">{q.specialty}</span>
+                  <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium">{q.difficulty}</span>
+                </div>
+                <p className="text-xs text-gray-600 line-clamp-2">{q.vignette}</p>
+                <div className="flex gap-3 mt-1 text-[10px] text-gray-400">
+                  <span className="font-bold text-red-600">{q.percent}% correct</span>
+                  <span>{q.total} responses</span>
+                  <span>Correct: {q.correctAnswer}</span>
+                  {q.mostCommonWrong && (
+                    <span>Most picked wrong: {q.mostCommonWrong.letter} ({q.mostCommonWrong.count}x)</span>
                   )}
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Most engaged subscribers */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <h3 className="font-semibold text-gray-900 mb-3">Most Engaged Subscribers</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-500 border-b">
+                <th className="pb-2 pr-4">Email</th>
+                <th className="pb-2 pr-4 text-right">Answered</th>
+                <th className="pb-2 pr-4 text-right">Correct</th>
+                <th className="pb-2 text-right">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostEngaged.map(s => (
+                <tr key={s.email} className="border-b border-gray-50 last:border-0">
+                  <td className="py-2 pr-4 text-gray-700 font-medium">{s.email}</td>
+                  <td className="py-2 pr-4 text-right text-gray-600">{s.total}</td>
+                  <td className="py-2 pr-4 text-right text-gray-600">{s.correct}</td>
+                  <td className="py-2 text-right font-bold text-indigo-600">{s.percent}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

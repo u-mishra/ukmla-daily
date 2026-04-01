@@ -73,6 +73,8 @@ export function dailyQuestionEmailHtml(question: {
     </div>
   `).join('');
 
+  const answerUrl = `${siteUrl}/answer/${question.id}?email=${encodeURIComponent(subscriberEmail)}`;
+
   const preferencesLink = preferencesToken
     ? `<a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#6366f1;font-size:12px;text-decoration:underline;">Manage your specialties</a>
         <span style="color:#d1d5db;margin:0 6px;">·</span>`
@@ -102,7 +104,7 @@ export function dailyQuestionEmailHtml(question: {
       ${optionsHtml}
       <div style="text-align:center;margin-top:28px;">
         <!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${siteUrl}/answer/${question.id}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="21%" strokecolor="#4F46E5" fillcolor="#4F46E5">
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${answerUrl}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="21%" strokecolor="#4F46E5" fillcolor="#4F46E5">
           <w:anchorlock/>
           <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Reveal Answer →</center>
         </v:roundrect>
@@ -111,7 +113,7 @@ export function dailyQuestionEmailHtml(question: {
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
           <tr>
             <td style="background-color:#4F46E5;border-radius:10px;text-align:center;">
-              <a href="${siteUrl}/answer/${question.id}" style="display:inline-block;padding:14px 40px;color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <a href="${answerUrl}" style="display:inline-block;padding:14px 40px;color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                 Reveal Answer →
               </a>
             </td>
