@@ -146,7 +146,7 @@ function DemoSection() {
   const sectionRef = useStaggerReveal<HTMLDivElement>();
 
   return (
-    <section id="demo" className="bg-[#1D1D1F] relative overflow-hidden py-16 sm:py-24">
+    <section id="demo" className="bg-[#1D1D1F] relative overflow-hidden py-14 sm:py-20">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(0,102,204,0.08),transparent_70%)] pointer-events-none" />
 
       <div ref={sectionRef} className="relative z-10 max-w-6xl mx-auto px-5">
@@ -315,9 +315,9 @@ function CustomiseSection() {
   const rightRef = useStaggerReveal<HTMLDivElement>();
 
   return (
-    <section className="bg-[#F5F5F7] py-16 sm:py-24">
+    <section className="bg-[#F5F5F7] pt-12 sm:pt-16 pb-6 sm:pb-8">
       <div className="max-w-5xl mx-auto px-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-start">
           {/* Left — chip grid */}
           <div ref={leftRef}>
             <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-3">
@@ -335,7 +335,7 @@ function CustomiseSection() {
               ))}
             </div>
             <p data-stagger className="stagger-item text-[12px] text-[#86868B] mt-3">
-              Customise your specialties after subscribing.
+              Current rotations — more coming soon
             </p>
           </div>
 
@@ -400,7 +400,7 @@ function SignupSection() {
   }, [email]);
 
   return (
-    <section id="subscribe" className="bg-[#F5F5F7] py-16 sm:py-24">
+    <section id="subscribe" className="bg-[#F5F5F7] pt-10 sm:pt-14 pb-16 sm:pb-20">
       <div ref={sectionRef} className="max-w-xl mx-auto px-5 text-center">
         <h2 data-stagger className="stagger-item font-serif-display text-[clamp(2rem,5vw,3rem)] leading-[1.1] text-[#1D1D1F] mb-3">
           Start tomorrow morning.
