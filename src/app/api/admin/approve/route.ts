@@ -13,9 +13,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'reject') {
-      // Update status to 'rejected' instead of deleting.
-      // This uses the existing UPDATE RLS policy (which works) rather than
-      // DELETE (which requires a separate RLS policy that may not be applied).
       const { error, data } = await supabase
         .from('questions')
         .update({ status: 'rejected' })
@@ -30,6 +27,22 @@ export async function POST(request: NextRequest) {
       const rejectedCount = data?.length || 0;
       console.log(`Rejected ${rejectedCount} question(s), ids: ${questionIds.join(', ')}`);
       return NextResponse.json({ message: `Rejected ${rejectedCount} question(s).`, count: rejectedCount });
+    }
+
+    if (action === 'revert') {
+      const { error, data } = await supabase
+        .from('questions')
+        .update({ status: 'pending' })
+        .in('id', questionIds)
+        .select('id');
+
+      if (error) {
+        console.error('Revert error:', error);
+        throw error;
+      }
+
+      const revertedCount = data?.length || 0;
+      return NextResponse.json({ message: `Reverted ${revertedCount} question(s) to pending.`, count: revertedCount });
     }
 
     // Approve

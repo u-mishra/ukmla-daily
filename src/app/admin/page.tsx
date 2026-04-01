@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+
+const ALL_SPECIALTIES = ['ENT', 'Haematology', 'Neurology', 'Renal', 'Infectious Diseases'] as const;
 
 interface Stats {
   totalSubscribers: number;
@@ -36,6 +38,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [tab, setTab] = useState<'pending' | 'approved'>('pending');
+  const [specialtyFilter, setSpecialtyFilter] = useState<string>('All');
 
   const fetchStats = useCallback(async () => {
     const res = await fetch('/api/admin/stats', {
@@ -67,6 +70,27 @@ export default function AdminPage() {
       fetchQuestions();
     }
   }, [authed, tab, fetchStats, fetchQuestions]);
+
+  // Filtered questions by specialty
+  const filteredQuestions = useMemo(() => {
+    if (specialtyFilter === 'All') return questions;
+    return questions.filter(q => q.specialty === specialtyFilter);
+  }, [questions, specialtyFilter]);
+
+  // Counts per specialty for the current tab
+  const specialtyCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: questions.length };
+    for (const s of ALL_SPECIALTIES) counts[s] = 0;
+    for (const q of questions) {
+      counts[q.specialty] = (counts[q.specialty] || 0) + 1;
+    }
+    return counts;
+  }, [questions]);
+
+  // Reset selection when filter changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [specialtyFilter]);
 
   const handleLogin = async () => {
     const res = await fetch('/api/admin/stats', {
@@ -103,7 +127,6 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setMessage(`Rejected ${ids.length} question(s)`);
-      // Clear selection and refetch both lists so counts update
       setSelectedIds(new Set());
       fetchQuestions();
       fetchStats();
@@ -113,9 +136,30 @@ export default function AdminPage() {
     }
   };
 
+  const handleRevert = async (ids: string[]) => {
+    const res = await fetch('/api/admin/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, questionIds: ids, action: 'revert' }),
+    });
+    if (res.ok) {
+      setMessage(`Reverted ${ids.length} question(s) to pending`);
+      setSelectedIds(new Set());
+      fetchQuestions();
+      fetchStats();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setMessage(`Failed to revert: ${data.error || 'unknown error'}`);
+    }
+  };
+
   const handleGenerate = async (regenerate = false) => {
     setLoading(true);
-    setMessage(regenerate ? 'Deleting pending questions and regenerating...' : 'Generating questions...');
+    setMessage(
+      regenerate
+        ? 'Deleting pending questions and regenerating...'
+        : `Generating questions from ${ALL_SPECIALTIES.length} specialties (${ALL_SPECIALTIES.join(', ')})...`
+    );
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -152,10 +196,10 @@ export default function AdminPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === questions.length) {
+    if (selectedIds.size === filteredQuestions.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(questions.map(q => q.id)));
+      setSelectedIds(new Set(filteredQuestions.map(q => q.id)));
     }
   };
 
@@ -214,8 +258,9 @@ export default function AdminPage() {
             onClick={() => handleGenerate(false)}
             disabled={loading}
             className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 disabled:opacity-50"
+            title={`Generates 2 questions per condition from: ${ALL_SPECIALTIES.join(', ')}`}
           >
-            Generate Questions
+            Generate Questions ({ALL_SPECIALTIES.length} specialties)
           </button>
           <button
             onClick={() => { if (confirm('This will delete all pending questions and regenerate them. Continue?')) handleGenerate(true); }}
@@ -239,12 +284,12 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tabs */}
+        {/* Status Tabs (Pending / Approved) */}
         <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1 w-fit">
           {(['pending', 'approved'] as const).map(t => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => { setTab(t); setSpecialtyFilter('All'); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -254,19 +299,40 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* Specialty Filter Tabs */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {['All', ...ALL_SPECIALTIES].map(s => {
+            const count = specialtyCounts[s] || 0;
+            const isActive = specialtyFilter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setSpecialtyFilter(s)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                  isActive
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-700'
+                }`}
+              >
+                {s} ({count})
+              </button>
+            );
+          })}
+        </div>
+
         {/* Bulk actions */}
-        {tab === 'pending' && questions.length > 0 && (
+        {filteredQuestions.length > 0 && (
           <div className="flex items-center gap-3 mb-4">
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input
                 type="checkbox"
-                checked={selectedIds.size === questions.length}
+                checked={selectedIds.size === filteredQuestions.length && filteredQuestions.length > 0}
                 onChange={toggleSelectAll}
                 className="rounded"
               />
-              Select all
+              Select all ({filteredQuestions.length})
             </label>
-            {selectedIds.size > 0 && (
+            {selectedIds.size > 0 && tab === 'pending' && (
               <>
                 <button
                   onClick={() => handleApprove(Array.from(selectedIds))}
@@ -282,25 +348,33 @@ export default function AdminPage() {
                 </button>
               </>
             )}
+            {selectedIds.size > 0 && tab === 'approved' && (
+              <button
+                onClick={() => handleRevert(Array.from(selectedIds))}
+                className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
+              >
+                Revert to Pending ({selectedIds.size})
+              </button>
+            )}
           </div>
         )}
 
         {/* Questions list */}
         <div className="space-y-4">
-          {questions.length === 0 && (
-            <p className="text-center text-gray-500 py-12">No {tab} questions</p>
+          {filteredQuestions.length === 0 && (
+            <p className="text-center text-gray-500 py-12">
+              No {specialtyFilter !== 'All' ? `${specialtyFilter} ` : ''}{tab} questions
+            </p>
           )}
-          {questions.map(q => (
+          {filteredQuestions.map(q => (
             <div key={q.id} className="bg-white rounded-xl border shadow-sm p-5">
               <div className="flex items-start gap-3">
-                {tab === 'pending' && (
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(q.id)}
-                    onChange={() => toggleSelect(q.id)}
-                    className="mt-1 rounded"
-                  />
-                )}
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(q.id)}
+                  onChange={() => toggleSelect(q.id)}
+                  className="mt-1 rounded"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap gap-2 mb-2">
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">{q.specialty}</span>
@@ -317,22 +391,32 @@ export default function AdminPage() {
                   </div>
                   <p className="text-xs text-gray-500 italic">{q.explanation}</p>
                 </div>
-                {tab === 'pending' && (
-                  <div className="flex flex-col gap-2 flex-shrink-0">
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  {tab === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleApprove([q.id])}
+                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject([q.id])}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {tab === 'approved' && (
                     <button
-                      onClick={() => handleApprove([q.id])}
-                      className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
+                      onClick={() => handleRevert([q.id])}
+                      className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200"
                     >
-                      Approve
+                      Revert to Pending
                     </button>
-                    <button
-                      onClick={() => handleReject([q.id])}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           ))}

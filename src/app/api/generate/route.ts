@@ -10,10 +10,18 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const PARENT_PAGE_ID = '304c4f38-3608-809f-90cb-f08a88eed078';
+// All specialty source pages — each is a top-level Notion page whose children are conditions
+const SPECIALTY_PAGES = [
+  { id: '304c4f38-3608-809f-90cb-f08a88eed078', name: 'ENT' },
+  { id: '2e6c4f38-3608-80b4-8559-ef6c08f49709', name: 'Haematology' },
+  { id: '2f4c4f38-3608-8060-a6a8-d50a4fd69c51', name: 'Neurology' },
+  { id: '303c4f38-3608-80ae-b778-d8aaab9a140f', name: 'Renal' },
+  { id: '322c4f38-3608-8065-9953-dfc2cccb9fba', name: 'Infectious Diseases' },
+];
 
 interface NotionBlock {
   type: string;
+  has_children?: boolean;
   paragraph?: { rich_text: Array<{ plain_text: string }> };
   heading_1?: { rich_text: Array<{ plain_text: string }> };
   heading_2?: { rich_text: Array<{ plain_text: string }> };
@@ -47,17 +55,48 @@ async function getPageContent(pageId: string): Promise<string> {
   return content;
 }
 
-async function getChildPages(): Promise<Array<{ id: string; title: string }>> {
-  const blocks = await notion.blocks.children.list({ block_id: PARENT_PAGE_ID, page_size: 100 });
-  const pages: Array<{ id: string; title: string }> = [];
+/**
+ * Check if a page has meaningful clinical content (not just links to subpages).
+ * A page is a "grouping page" if it only contains child_page blocks and no real text.
+ */
+function hasTextContent(blocks: NotionBlock[]): boolean {
+  for (const block of blocks) {
+    if (block.type !== 'child_page') {
+      const text = extractTextFromBlock(block);
+      if (text.trim().length > 50) return true; // meaningful content threshold
+    }
+  }
+  return false;
+}
+
+/**
+ * Recursively get all leaf condition pages under a specialty page.
+ * If a child page has its own child pages (subpages), recurse into them.
+ * Only return leaf pages that have actual clinical content.
+ */
+async function getLeafConditionPages(parentId: string): Promise<Array<{ id: string; title: string }>> {
+  const blocks = await notion.blocks.children.list({ block_id: parentId, page_size: 100 });
+  const leafPages: Array<{ id: string; title: string }> = [];
 
   for (const block of blocks.results as Array<NotionBlock & { id: string; type: string }>) {
     if (block.type === 'child_page' && block.child_page) {
-      pages.push({ id: block.id, title: block.child_page.title });
+      // Check if this child page itself has subpages
+      const childBlocks = await notion.blocks.children.list({ block_id: block.id, page_size: 100 });
+      const childPageBlocks = (childBlocks.results as Array<NotionBlock & { id: string; type: string }>)
+        .filter(b => b.type === 'child_page');
+
+      if (childPageBlocks.length > 0 && !hasTextContent(childBlocks.results as NotionBlock[])) {
+        // This is a grouping page — recurse into its children
+        const nested = await getLeafConditionPages(block.id);
+        leafPages.push(...nested);
+      } else {
+        // This is a leaf page with clinical content
+        leafPages.push({ id: block.id, title: block.child_page.title });
+      }
     }
   }
 
-  return pages;
+  return leafPages;
 }
 
 interface GeneratedQuestion {
@@ -315,15 +354,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const childPages = await getChildPages();
-
-    if (childPages.length === 0) {
-      return NextResponse.json({ error: 'No condition pages found in Notion.' }, { status: 404 });
-    }
-
     let totalGenerated = 0;
     let skippedConditions = 0;
+    let totalConditions = 0;
     const MAX_QUESTIONS_PER_CONDITION = 2;
+    const specialtyBreakdown: Record<string, number> = {};
 
     // Fetch all existing non-rejected questions to check for duplicates
     const { data: existingQuestions } = await supabase
@@ -338,41 +373,58 @@ export async function POST(request: NextRequest) {
     // Collect all generated questions for batch answer balancing
     const allGenerated: { question: GeneratedQuestion; specialty: string }[] = [];
 
-    for (const page of childPages) {
+    // Loop through ALL specialty pages
+    for (const specialty of SPECIALTY_PAGES) {
+      console.log(`Processing specialty: ${specialty.name} (${specialty.id})`);
+      let conditionsInSpecialty = 0;
+
       try {
-        const conditionLower = page.title.toLowerCase();
+        // Recursively get all leaf condition pages (handles nested subpages)
+        const conditionPages = await getLeafConditionPages(specialty.id);
+        totalConditions += conditionPages.length;
 
-        // Count existing questions that mention this condition in the vignette
-        const keywords = conditionLower
-          .split(/[\s\-\/,]+/)
-          .filter(w => w.length > 2);
+        for (const page of conditionPages) {
+          try {
+            const conditionLower = page.title.toLowerCase();
 
-        const existingCount = existingVignettes.filter(vignette =>
-          keywords.every(kw => vignette.includes(kw))
-        ).length;
+            // Count existing questions that mention this condition in the vignette
+            const keywords = conditionLower
+              .split(/[\s\-\/,]+/)
+              .filter(w => w.length > 2);
 
-        if (existingCount >= MAX_QUESTIONS_PER_CONDITION) {
-          console.log(`Skipping "${page.title}" — already has ${existingCount} question(s)`);
-          skippedConditions++;
-          continue;
+            const existingCount = existingVignettes.filter(vignette =>
+              keywords.every(kw => vignette.includes(kw))
+            ).length;
+
+            if (existingCount >= MAX_QUESTIONS_PER_CONDITION) {
+              console.log(`Skipping "${page.title}" (${specialty.name}) — already has ${existingCount} question(s)`);
+              skippedConditions++;
+              continue;
+            }
+
+            const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - existingCount;
+
+            const content = await getPageContent(page.id);
+            if (!content.trim()) continue;
+
+            const questions = await generateQuestions(page.title, content);
+
+            // Tag with TOP-LEVEL specialty name (e.g. "Neurology", not "Brain Bleeds")
+            const toInsert = questions.slice(0, questionsNeeded);
+            for (const q of toInsert) {
+              q.specialty = specialty.name;
+              allGenerated.push({ question: q, specialty: specialty.name });
+              conditionsInSpecialty++;
+            }
+          } catch (pageError) {
+            console.error(`Failed to process page "${page.title}" (${specialty.name}):`, pageError);
+          }
         }
-
-        const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - existingCount;
-
-        const content = await getPageContent(page.id);
-        if (!content.trim()) continue;
-
-        const questions = await generateQuestions(page.title, content);
-
-        // Override specialty with Notion page title (not the AI's guess)
-        const toInsert = questions.slice(0, questionsNeeded);
-        for (const q of toInsert) {
-          q.specialty = page.title;
-          allGenerated.push({ question: q, specialty: page.title });
-        }
-      } catch (pageError) {
-        console.error(`Failed to process page "${page.title}":`, pageError);
+      } catch (specialtyError) {
+        console.error(`Failed to process specialty "${specialty.name}":`, specialtyError);
       }
+
+      specialtyBreakdown[specialty.name] = conditionsInSpecialty;
     }
 
     // Post-process: balance answer distribution across the whole batch
@@ -411,8 +463,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const breakdownStr = Object.entries(specialtyBreakdown)
+      .map(([name, count]) => `${name}: ${count}`)
+      .join(', ');
     const skippedMsg = skippedConditions > 0 ? ` Skipped ${skippedConditions} condition(s) that already have ${MAX_QUESTIONS_PER_CONDITION}+ questions.` : '';
-    return NextResponse.json({ message: `Generated ${totalGenerated} questions from ${childPages.length} conditions.${skippedMsg}`, count: totalGenerated });
+    return NextResponse.json({
+      message: `Generated ${totalGenerated} questions from ${totalConditions} conditions across ${SPECIALTY_PAGES.length} specialties (${breakdownStr}).${skippedMsg}`,
+      count: totalGenerated,
+      breakdown: specialtyBreakdown,
+    });
   } catch (error) {
     console.error('Generate error:', error);
     return NextResponse.json({ error: 'Failed to generate questions.' }, { status: 500 });
