@@ -313,24 +313,6 @@ function InteractiveQuestionCard() {
 function CustomiseSection() {
   const leftRef = useStaggerReveal<HTMLDivElement>();
   const rightRef = useStaggerReveal<HTMLDivElement>();
-  const [selectedChips, setSelectedChips] = useState<Set<string>>(new Set(['all']));
-
-  const toggleChip = (chip: string) => {
-    setSelectedChips(prev => {
-      const next = new Set(prev);
-      if (chip === 'all') {
-        return new Set(['all']);
-      }
-      next.delete('all');
-      if (next.has(chip)) {
-        next.delete(chip);
-        if (next.size === 0) return new Set(['all']);
-      } else {
-        next.add(chip);
-      }
-      return next;
-    });
-  };
 
   return (
     <section className="bg-[#F5F5F7] py-16 sm:py-24">
@@ -338,37 +320,21 @@ function CustomiseSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
           {/* Left — chip grid */}
           <div ref={leftRef}>
-            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-6">
+            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-3">
               Pick your rotation.
             </h2>
             <div className="flex flex-wrap gap-2.5">
-              <button
-                data-stagger
-                onClick={() => toggleChip('all')}
-                className={`stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
-                  selectedChips.has('all')
-                    ? 'bg-[#1D1D1F] text-white'
-                    : 'bg-white text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#86868B]'
-                }`}
-              >
-                All topics
-              </button>
               {SPECIALTIES.map(s => (
-                <button
+                <span
                   key={s}
                   data-stagger
-                  onClick={() => toggleChip(s)}
-                  className={`stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200 min-h-[44px] ${
-                    selectedChips.has(s)
-                      ? 'bg-[#1D1D1F] text-white'
-                      : 'bg-white text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#86868B]'
-                  }`}
+                  className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium bg-[#1D1D1F] text-white"
                 >
                   {s}
-                </button>
+                </span>
               ))}
             </div>
-            <p data-stagger className="stagger-item text-[12px] text-[#86868B] mt-4">
+            <p data-stagger className="stagger-item text-[12px] text-[#86868B] mt-3">
               Customise your specialties after subscribing.
             </p>
           </div>
