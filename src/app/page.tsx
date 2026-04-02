@@ -366,9 +366,28 @@ function CustomiseSection() {
 function SignupSection() {
   const ref = useStaggerReveal<HTMLDivElement>();
   const [email, setEmail] = useState('');
+  const [selectedSpecialties, setSelectedSpecialties] = useState<Set<string>>(new Set(SPECIALTIES));
+  const [lastOneWarning, setLastOneWarning] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [formVisible, setFormVisible] = useState(true);
+
+  const toggleSpecialty = useCallback((s: string) => {
+    setSelectedSpecialties(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) {
+        if (next.size <= 1) {
+          setLastOneWarning(true);
+          setTimeout(() => setLastOneWarning(false), 2000);
+          return prev;
+        }
+        next.delete(s);
+      } else {
+        next.add(s);
+      }
+      return next;
+    });
+  }, []);
 
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -378,7 +397,7 @@ function SignupSection() {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, specialties: Array.from(selectedSpecialties) }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -393,7 +412,7 @@ function SignupSection() {
       setStatus('error');
       setErrorMsg('Something went wrong. Please try again.');
     }
-  }, [email]);
+  }, [email, selectedSpecialties]);
 
   return (
     <section id="subscribe" className="bg-[#F5F5F7] border-t border-black/[0.04] pt-10 sm:pt-14 pb-14 sm:pb-18">
@@ -411,6 +430,32 @@ function SignupSection() {
               onSubmit={handleSubmit}
               className={`transition-all duration-300 ${formVisible ? '' : 'shrink-away pointer-events-none'}`}
             >
+              {/* Specialty chips */}
+              <p className="text-[13px] text-[#6E6E73] mb-2.5 font-medium">Choose your specialties:</p>
+              <div className="flex flex-wrap justify-center gap-2 mb-5">
+                {SPECIALTIES.map(s => {
+                  const active = selectedSpecialties.has(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleSpecialty(s)}
+                      className="px-3.5 py-2 rounded-full text-[13px] font-medium border transition-all duration-200 min-h-[36px] select-none active:scale-[0.96]"
+                      style={{
+                        backgroundColor: active ? G : 'transparent',
+                        color: active ? '#fff' : '#6E6E73',
+                        borderColor: active ? G : '#D2D2D7',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+              {lastOneWarning && (
+                <p className="text-[12px] text-[#FF9500] font-medium mb-3 transition-opacity">Select at least one specialty</p>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"

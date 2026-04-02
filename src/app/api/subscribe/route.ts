@@ -20,13 +20,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const { email } = await request.json();
+    const { email, specialties: rawSpecialties } = await request.json();
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate and filter specialties (fall back to all if none provided or none valid)
+    const VALID_SPECIALTIES = new Set(DEFAULT_SPECIALTIES);
+    const validSpecialties = Array.isArray(rawSpecialties)
+      ? rawSpecialties.filter((s: unknown) => typeof s === 'string' && VALID_SPECIALTIES.has(s))
+      : [];
+    const specialties = validSpecialties.length > 0 ? validSpecialties : DEFAULT_SPECIALTIES;
 
     // Check if subscriber exists
     const { data: existing } = await supabase
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
         .from('subscribers')
         .insert({
           email: normalizedEmail,
-          preferences: { specialties: DEFAULT_SPECIALTIES },
+          preferences: { specialties },
           preferences_token: token,
         })
         .select('preferences_token')
