@@ -107,56 +107,6 @@ function buildReferenceBlock(conditionName: string): string {
   return `\nREFERENCE VALUES (use these when including investigation results in vignettes):\n${lines}\n`;
 }
 
-const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
-const OPTION_KEYS = ['option_a', 'option_b', 'option_c', 'option_d', 'option_e'] as const;
-
-function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQuestion[] {
-  if (questions.length < 5) return questions;
-
-  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
-  for (const q of questions) counts[q.correct_answer]++;
-
-  const total = questions.length;
-  const minCount = Math.floor(total * 0.15);
-  const maxCount = Math.ceil(total * 0.25);
-
-  const over: string[] = [];
-  const under: string[] = [];
-  for (const letter of ANSWER_LETTERS) {
-    if (counts[letter] > maxCount) over.push(letter);
-    if (counts[letter] < minCount) under.push(letter);
-  }
-
-  if (over.length === 0 || under.length === 0) return questions;
-
-  for (const fromLetter of over) {
-    while (counts[fromLetter] > maxCount && under.length > 0) {
-      const toLetter = under[0];
-      const qi = questions.findIndex(q => q.correct_answer === fromLetter);
-      if (qi === -1) break;
-
-      const q = { ...questions[qi] };
-      const fromIdx = ANSWER_LETTERS.indexOf(fromLetter as typeof ANSWER_LETTERS[number]);
-      const toIdx = ANSWER_LETTERS.indexOf(toLetter as typeof ANSWER_LETTERS[number]);
-      const fromKey = OPTION_KEYS[fromIdx];
-      const toKey = OPTION_KEYS[toIdx];
-
-      const temp = q[fromKey];
-      q[fromKey] = q[toKey];
-      q[toKey] = temp;
-      q.correct_answer = toLetter;
-
-      questions[qi] = q;
-      counts[fromLetter]--;
-      counts[toLetter]++;
-
-      if (counts[toLetter] >= minCount) under.shift();
-    }
-  }
-
-  return questions;
-}
-
 async function generateQuestions(conditionName: string, content: string, logs: string[]): Promise<GeneratedQuestion[]> {
   const referenceBlock = buildReferenceBlock(conditionName);
 
@@ -359,35 +309,18 @@ export async function POST(request: NextRequest) {
     const skippedDetails: string[] = [];
     const errors: string[] = [];
 
-    // Fetch existing non-rejected questions to check for duplicates
-    // IMPORTANT: only count pending/approved/sent — NOT rejected
-    const { data: existingQuestions, error: existingError } = await supabase
+    // Log existing question counts (duplicate check now happens per-condition with fresh queries)
+    const { count: existingCount } = await supabase
       .from('questions')
-      .select('vignette, specialty')
+      .select('*', { count: 'exact', head: true })
       .in('status', ['pending', 'approved', 'sent']);
 
-    if (existingError) {
-      logs.push(`[DB] ERROR fetching existing questions: ${JSON.stringify(existingError)}`);
-    }
+    logs.push(`[DB] Found ${existingCount || 0} existing non-rejected questions`);
 
-    const existingCount = existingQuestions?.length || 0;
-    logs.push(`[DB] Found ${existingCount} existing non-rejected questions`);
+    const insertErrors: string[] = [];
 
-    // Build a per-specialty vignette count for smarter duplicate detection
-    const existingBySpecialty: Record<string, string[]> = {};
-    for (const q of existingQuestions || []) {
-      if (!existingBySpecialty[q.specialty]) existingBySpecialty[q.specialty] = [];
-      existingBySpecialty[q.specialty].push(q.vignette.toLowerCase());
-    }
-
-    for (const [spec, vigs] of Object.entries(existingBySpecialty)) {
-      logs.push(`[DB] Existing: ${spec} = ${vigs.length} question(s)`);
-    }
-
-    // Collect all generated questions for batch answer balancing
-    const allGenerated: { question: GeneratedQuestion; specialty: string }[] = [];
-
-    // Loop through ALL specialty pages
+    // Loop through ALL specialty pages — insert each question IMMEDIATELY after generation
+    // so that if the function times out, completed questions are already in the database
     for (const specialty of SPECIALTY_PAGES) {
       logs.push(`\n[NOTION] === Processing specialty: ${specialty.name} ===`);
       let conditionsInSpecialty = 0;
@@ -401,13 +334,18 @@ export async function POST(request: NextRequest) {
           try {
             const conditionLower = page.title.toLowerCase();
 
-            // Duplicate detection: count existing questions whose specialty matches
-            // AND whose vignette contains all significant keywords from the condition name
             const keywords = conditionLower
               .split(/[\s\-\/,]+/)
-              .filter(w => w.length > 3); // raised threshold from 2 to 3 to avoid false matches
+              .filter(w => w.length > 3);
 
-            const specialtyVignettes = existingBySpecialty[specialty.name] || [];
+            // Re-fetch existing for this specialty to include questions saved earlier in this run
+            const { data: freshExisting } = await supabase
+              .from('questions')
+              .select('vignette')
+              .eq('specialty', specialty.name)
+              .in('status', ['pending', 'approved', 'sent']);
+
+            const specialtyVignettes = (freshExisting || []).map(q => q.vignette.toLowerCase());
             const matchingCount = keywords.length > 0
               ? specialtyVignettes.filter(vignette => keywords.some(kw => vignette.includes(kw))).length
               : 0;
@@ -434,14 +372,35 @@ export async function POST(request: NextRequest) {
 
             const questions = await generateQuestions(page.title, content, logs);
 
+            // INSERT IMMEDIATELY after generation — don't batch
             const toInsert = questions.slice(0, questionsNeeded);
             for (const q of toInsert) {
               q.specialty = specialty.name;
-              allGenerated.push({ question: q, specialty: specialty.name });
-              conditionsInSpecialty++;
-            }
 
-            logs.push(`[GEN] Generated ${toInsert.length} question(s) for "${page.title}"`);
+              const { error: insertError, data: insertData } = await supabase.from('questions').insert({
+                specialty: q.specialty,
+                difficulty: q.difficulty,
+                vignette: q.vignette,
+                option_a: q.option_a,
+                option_b: q.option_b,
+                option_c: q.option_c,
+                option_d: q.option_d,
+                option_e: q.option_e,
+                correct_answer: q.correct_answer,
+                explanation: q.explanation,
+                status: 'pending',
+              }).select('id');
+
+              if (insertError) {
+                const errMsg = `Insert failed (${specialty.name} / ${page.title}): ${JSON.stringify(insertError)}`;
+                logs.push(`[DB] ERROR: ${errMsg}`);
+                insertErrors.push(errMsg);
+              } else {
+                totalGenerated++;
+                conditionsInSpecialty++;
+                logs.push(`[DB] Saved question (${specialty.name} / ${page.title}) — id: ${insertData?.[0]?.id} — total so far: ${totalGenerated}`);
+              }
+            }
           } catch (pageError) {
             const errMsg = `Failed "${page.title}" (${specialty.name}): ${pageError instanceof Error ? pageError.message : String(pageError)}`;
             logs.push(`[ERROR] ${errMsg}`);
@@ -455,40 +414,6 @@ export async function POST(request: NextRequest) {
       }
 
       specialtyBreakdown[specialty.name] = conditionsInSpecialty;
-    }
-
-    logs.push(`\n[BATCH] Total questions to insert: ${allGenerated.length}`);
-
-    // Post-process: balance answer distribution
-    const questionsOnly = allGenerated.map(g => g.question);
-    const balanced = balanceAnswerDistribution(questionsOnly);
-
-    // Insert all balanced questions
-    const insertErrors: string[] = [];
-    for (let i = 0; i < balanced.length; i++) {
-      const q = balanced[i];
-      const { error: insertError, data: insertData } = await supabase.from('questions').insert({
-        specialty: q.specialty,
-        difficulty: q.difficulty,
-        vignette: q.vignette,
-        option_a: q.option_a,
-        option_b: q.option_b,
-        option_c: q.option_c,
-        option_d: q.option_d,
-        option_e: q.option_e,
-        correct_answer: q.correct_answer,
-        explanation: q.explanation,
-        status: 'pending',
-      }).select('id');
-
-      if (insertError) {
-        const errMsg = `Insert failed for question ${i} (${q.specialty}): ${JSON.stringify(insertError)}`;
-        logs.push(`[DB] ERROR: ${errMsg}`);
-        insertErrors.push(errMsg);
-      } else {
-        totalGenerated++;
-        logs.push(`[DB] Inserted question ${i} (${q.specialty}) — id: ${insertData?.[0]?.id}`);
-      }
     }
 
     if (isAutoTrigger && totalGenerated > 0) {
