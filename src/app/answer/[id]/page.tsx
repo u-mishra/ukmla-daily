@@ -11,25 +11,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const { data: question } = await supabase
     .from('questions')
-    .select('day_number, specialty')
+    .select('specialty')
     .eq('id', id)
     .single();
 
-  const dayText = question?.day_number ? `Day ${question.day_number}` : 'Practice Question';
   const specialty = question?.specialty || 'Clinical Medicine';
 
   return {
-    title: `UKMLA Daily — ${dayText}`,
+    title: `UKMLA Daily — ${specialty}`,
     description: `Can you answer today's ${specialty} question?`,
     openGraph: {
-      title: `UKMLA Daily — ${dayText}`,
+      title: `UKMLA Daily — ${specialty}`,
       description: `Can you answer today's ${specialty} question?`,
       type: 'website',
       siteName: 'UKMLA Daily',
     },
     twitter: {
       card: 'summary',
-      title: `UKMLA Daily — ${dayText}`,
+      title: `UKMLA Daily — ${specialty}`,
       description: `Can you answer today's ${specialty} question?`,
     },
   };

@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
         const { data, error } = await resend.emails.send({
           from: 'UKMLA Daily <question@ukmladaily.co.uk>',
           to: sub.email,
-          subject: `🩺 Day ${dayNumber} — ${question.specialty} | UKMLA Daily`,
+          subject: `🩺 ${question.specialty} | UKMLA Daily`,
           html: dailyQuestionEmailHtml(questionWithDay, sub.email, sub.preferences_token),
         });
 

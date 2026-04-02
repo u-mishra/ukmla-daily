@@ -154,10 +154,6 @@ export default function AnswerClient({
           <span className="text-[13px] font-bold tracking-tight text-[#1A6B52]">Daily</span>
         </a>
 
-        {question.day_number && (
-          <p className="text-center text-[13px] text-[#86868B] mb-2">Day {question.day_number}</p>
-        )}
-
         {/* Question card */}
         <div className="bg-white rounded-2xl border border-[#E8E8ED] p-6 sm:p-8 shadow-sm mb-6">
           {/* Badges */}

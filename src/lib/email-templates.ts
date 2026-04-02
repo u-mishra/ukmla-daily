@@ -123,7 +123,7 @@ export function dailyQuestionEmailHtml(question: {
         <span style="color:#1D1D1F;">UKMLA</span> <span style="color:#1A6B52;">Daily</span>
       </p>
       <h1 style="color:#1D1D1F;margin:0;font-size:20px;font-family:Georgia,'Times New Roman',serif;font-weight:400;">
-        Day ${question.day_number} — ${question.specialty}
+        ${question.specialty}
       </h1>
     </div>
 
