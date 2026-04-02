@@ -491,8 +491,8 @@ function SignupSection() {
 
         {status === 'success' && (
           <div className="pop-in">
-            <p className="text-[21px] font-semibold text-[#1D1D1F] mb-1">You&apos;re in.</p>
-            <p className="text-[15px] text-[#6E6E73]">See you at 7&nbsp;am.</p>
+            <p className="text-[21px] font-semibold text-[#1D1D1F] mb-1">You&apos;re in!</p>
+            <p className="text-[15px] text-[#6E6E73]">See you tomorrow morning ☀️</p>
           </div>
         )}
 
