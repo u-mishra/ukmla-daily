@@ -492,7 +492,8 @@ function SignupSection() {
         {status === 'success' && (
           <div className="pop-in">
             <p className="text-[21px] font-semibold text-[#1D1D1F] mb-1">You&apos;re in!</p>
-            <p className="text-[15px] text-[#6E6E73]">See you tomorrow morning ☀️</p>
+            <p className="text-[15px] text-[#6E6E73] mb-3">See you tomorrow morning ☀️</p>
+            <p className="text-[13px] text-[#6E6E73] leading-relaxed">💡 Tip: Check your spam/promotions folder for your first email and mark it as &apos;Not Spam&apos;. After that, every email will land in your inbox.</p>
           </div>
         )}
 
