@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import DarkModeToggle from '@/components/DarkModeToggle';
 import SubscribeForm from '@/components/SubscribeForm';
 import { getReferenceValuesForSpecialty } from '@/lib/reference-values';
 
@@ -22,8 +21,6 @@ interface Question {
   explanation: string;
   day_number: number | null;
 }
-
-const LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 export default function AnswerClient({
   question,
@@ -53,7 +50,6 @@ export default function AnswerClient({
     { letter: 'E', text: question.option_e },
   ];
 
-  // Check if user already answered
   useEffect(() => {
     async function checkPrevious() {
       if (email) {
@@ -72,9 +68,7 @@ export default function AnswerClient({
               setEliminated(new Set(data.previous.eliminated_options));
             }
           }
-        } catch {
-          // Silently fail
-        }
+        } catch { /* silently fail */ }
       }
       setLoading(false);
     }
@@ -82,8 +76,7 @@ export default function AnswerClient({
   }, [email, question.id]);
 
   const handleSelect = useCallback((letter: string) => {
-    if (submitted) return;
-    if (eliminated.has(letter)) return;
+    if (submitted || eliminated.has(letter)) return;
     setSelected(letter);
   }, [submitted, eliminated]);
 
@@ -95,7 +88,6 @@ export default function AnswerClient({
         next.delete(letter);
       } else {
         next.add(letter);
-        // If this was the selected answer, deselect it
         if (selected === letter) setSelected(null);
       }
       return next;
@@ -129,9 +121,7 @@ export default function AnswerClient({
         setTotal(data.total);
         setDistribution(data.distribution || {});
       }
-    } catch {
-      // Silently fail
-    }
+    } catch { /* silently fail */ }
   };
 
   const toggleHighlight = (index: number) => {
@@ -148,125 +138,119 @@ export default function AnswerClient({
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500 dark:text-gray-400">Loading question...</p>
+      <main className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
+        <p className="text-[#86868B]">Loading question...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
-      <DarkModeToggle />
-
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-b from-purple-500/20 via-indigo-500/10 to-transparent rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
-
-      <div className="relative z-10 max-w-2xl mx-auto px-5 py-12 sm:py-20">
-        {/* Logo */}
-        <a href="/" className="flex items-center justify-center gap-3 mb-10">
-          <div className="w-3 h-3 rounded-full gradient-bg animate-pulse-dot" />
-          <span className="text-sm font-bold tracking-[0.25em] uppercase gradient-text">
-            UKMLA Daily
-          </span>
+    <main className="min-h-screen bg-[#F5F5F7]">
+      <div className="max-w-2xl mx-auto px-5 py-10 sm:py-16">
+        {/* Header */}
+        <a href="/" className="flex items-center justify-center gap-1 mb-8">
+          <span className="text-[13px] font-bold tracking-tight text-[#1D1D1F]">UKMLA</span>
+          <span className="text-[13px] font-bold tracking-tight text-[#1A6B52]">Daily</span>
         </a>
 
         {question.day_number && (
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Day {question.day_number}
-          </p>
+          <p className="text-center text-[13px] text-[#86868B] mb-2">Day {question.day_number}</p>
         )}
 
         {/* Question card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-lg mb-6 animate-fade-up">
+        <div className="bg-white rounded-2xl border border-[#E8E8ED] p-6 sm:p-8 shadow-sm mb-6">
+          {/* Badges */}
           <div className="flex gap-2 mb-5">
-            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-semibold">
+            <span className="px-3 py-1 bg-[#E8F4F0] text-[#0F6E56] rounded-lg text-[11px] font-semibold">
               {question.specialty}
             </span>
-            <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-semibold">
+            <span className="px-3 py-1 bg-[#FEF3E8] text-[#9A5B1D] rounded-lg text-[11px] font-semibold">
               {question.difficulty}
             </span>
           </div>
 
-          <p className="font-serif text-base sm:text-lg leading-relaxed text-gray-800 dark:text-gray-200 mb-6">
+          {/* Vignette */}
+          <p className="font-crimson text-[16px] sm:text-[17px] leading-[1.75] text-[#1D1D1F] mb-6">
             {question.vignette}
           </p>
 
           {/* Options */}
-          <div className="space-y-3">
-            {options.map((opt) => {
+          <div className="space-y-2.5">
+            {options.map((opt, i) => {
               const isEliminated = eliminated.has(opt.letter);
               const isSelected = selected === opt.letter;
               const isCorrectAnswer = opt.letter === question.correct_answer;
               const wasUserPick = submitted && opt.letter === (previousAnswer || selected);
 
-              let borderClass = 'border-gray-200 dark:border-gray-700';
-              let bgClass = 'bg-white dark:bg-gray-900';
-              let textClass = 'text-gray-700 dark:text-gray-300';
-              let letterBgClass = 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400';
-              let opacityClass = '';
-              let strikeClass = '';
+              let border = 'border-[#E8E8ED]';
+              let bg = 'bg-white';
+              let text = 'text-[#1D1D1F]';
+              let letterCls = 'bg-[#F5F5F7] text-[#6E6E73]';
+              let extra = '';
+              let strike = '';
 
               if (submitted) {
                 if (isCorrectAnswer) {
-                  borderClass = 'border-green-500 dark:border-green-400';
-                  bgClass = 'bg-green-50 dark:bg-green-950/30';
-                  letterBgClass = 'bg-green-500 text-white';
+                  border = 'border-[#0F6E56]';
+                  bg = 'bg-[#E8F4F0]';
+                  letterCls = 'bg-[#0F6E56] text-white';
+                  text = 'text-[#0F6E56]';
                 } else if (wasUserPick && !isCorrect) {
-                  borderClass = 'border-red-400 dark:border-red-500';
-                  bgClass = 'bg-red-50 dark:bg-red-950/20';
-                  letterBgClass = 'bg-red-500 text-white';
+                  border = 'border-[#C0392B]';
+                  bg = 'bg-[#FDF2F0]';
+                  letterCls = 'bg-[#C0392B] text-white';
+                  text = 'text-[#C0392B]';
                 } else {
-                  opacityClass = 'opacity-50';
+                  extra = 'opacity-[0.35]';
+                  if (i > 0) extra += ` -translate-x-2`;
                 }
               } else {
                 if (isEliminated) {
-                  borderClass = 'border-red-200 dark:border-red-900/50';
-                  bgClass = 'bg-red-50/50 dark:bg-red-950/10';
-                  opacityClass = 'opacity-40';
-                  strikeClass = 'line-through';
-                  letterBgClass = 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500';
+                  border = 'border-[#E8C4C0]';
+                  bg = 'bg-[#FDF2F0]/50';
+                  extra = 'opacity-40';
+                  strike = 'line-through';
+                  letterCls = 'bg-[#FDF2F0] text-[#C0392B]/60';
                 } else if (isSelected) {
-                  borderClass = 'border-indigo-500 dark:border-indigo-400';
-                  bgClass = 'bg-indigo-50 dark:bg-indigo-950/30';
-                  letterBgClass = 'bg-indigo-600 dark:bg-indigo-500 text-white';
-                  textClass = 'text-indigo-900 dark:text-indigo-200';
+                  border = 'border-[#1A6B52]';
+                  bg = 'bg-[#F0F7F4]';
+                  letterCls = 'bg-[#1A6B52] text-white';
                 }
               }
 
               return (
                 <div
                   key={opt.letter}
-                  className={`relative p-3.5 rounded-xl border-2 flex items-start gap-3 transition-all ${borderClass} ${bgClass} ${opacityClass} ${
-                    !submitted && !isEliminated ? 'cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 active:scale-[0.99]' : ''
-                  } ${submitted ? '' : 'cursor-pointer'}`}
                   onClick={() => handleSelect(opt.letter)}
+                  className={`relative p-3.5 rounded-xl border-2 flex items-start gap-3 transition-all duration-300 ${border} ${bg} ${extra} ${
+                    !submitted && !isEliminated ? 'cursor-pointer active:scale-[0.99]' : ''
+                  }`}
+                  style={submitted && !isCorrectAnswer && !wasUserPick ? { transitionDelay: `${i * 40}ms` } : undefined}
                 >
-                  <span
-                    className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${letterBgClass}`}
-                  >
+                  <span className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold transition-all duration-300 ${letterCls}`}>
                     {submitted && isCorrectAnswer ? '✓' : submitted && wasUserPick && !isCorrect ? '✗' : opt.letter}
                   </span>
-                  <span className={`flex-1 text-sm sm:text-base ${textClass} ${strikeClass} transition-all`}>
+                  <span className={`flex-1 text-[14px] sm:text-[15px] pt-0.5 transition-all duration-300 ${text} ${strike}`}>
                     {opt.text}
                   </span>
 
-                  {/* Eliminate button — only pre-submit */}
+                  {/* Eliminate button */}
                   {!submitted && (
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleEliminate(opt.letter); }}
-                      className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                      className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all ${
                         isEliminated
-                          ? 'bg-red-200 dark:bg-red-800 text-red-600 dark:text-red-300'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-500'
+                          ? 'bg-[#F5D5D0] text-[#C0392B]'
+                          : 'bg-[#F5F5F7] text-[#86868B] hover:bg-[#FDF2F0] hover:text-[#C0392B]'
                       }`}
-                      title={isEliminated ? 'Undo eliminate' : 'Eliminate option'}
                     >
                       ✕
                     </button>
                   )}
 
-                  {/* Answer distribution bar — post-submit */}
+                  {/* Distribution % */}
                   {submitted && total > 0 && distribution[opt.letter] !== undefined && (
-                    <span className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500 font-medium w-10 text-right">
+                    <span className="flex-shrink-0 text-[11px] text-[#86868B] font-medium w-10 text-right">
                       {Math.round((distribution[opt.letter] / total) * 100)}%
                     </span>
                   )}
@@ -280,10 +264,10 @@ export default function AnswerClient({
             <button
               onClick={handleSubmit}
               disabled={!selected}
-              className={`w-full mt-6 py-3.5 rounded-xl font-semibold text-base transition-all ${
+              className={`w-full mt-6 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 min-h-[44px] ${
                 selected
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 active:scale-[0.99]'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                  ? 'bg-[#1A6B52] text-white active:scale-[0.99]'
+                  : 'bg-[#F5F5F7] text-[#86868B] cursor-not-allowed'
               }`}
             >
               Check Answer
@@ -293,22 +277,18 @@ export default function AnswerClient({
           {/* Result banner */}
           {submitted && (
             <div className={`mt-6 p-4 rounded-xl text-center ${
-              isCorrect
-                ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800'
-                : 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800'
+              isCorrect ? 'bg-[#E8F4F0] border border-[#C8E6D8]' : 'bg-[#FDF2F0] border border-[#F5D5D0]'
             }`}>
-              <p className={`text-lg font-bold ${
-                isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-              }`}>
+              <p className={`text-[17px] font-bold ${isCorrect ? 'text-[#0F6E56]' : 'text-[#C0392B]'}`}>
                 {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
               </p>
               {!isCorrect && (
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                <p className="text-[13px] text-[#C0392B] mt-1">
                   You picked <strong>{previousAnswer || selected}</strong> — the correct answer is <strong>{question.correct_answer}</strong>
                 </p>
               )}
               {total > 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-[13px] text-[#86868B] mt-2">
                   {percentage}% of {total} student{total !== 1 ? 's' : ''} got this right
                 </p>
               )}
@@ -316,55 +296,48 @@ export default function AnswerClient({
           )}
         </div>
 
-        {/* Explanation — only after submit */}
+        {/* Explanation */}
         {submitted && (
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-2xl border border-green-200 dark:border-green-800 p-6 sm:p-8 mb-8 animate-fade-up">
-            <h3 className="font-semibold text-green-800 dark:text-green-300 mb-3">Explanation</h3>
-            <div className="font-serif text-green-700 dark:text-green-300 text-sm sm:text-base leading-relaxed space-y-1">
+          <div className="bg-[#F0F7F4] rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up" style={{ borderLeft: '3px solid #1A6B52' }}>
+            <p className="text-[11px] font-bold uppercase tracking-[2px] text-[#1A6B52] mb-3">Explanation</p>
+            <div className="font-crimson text-[#3D3D3D] text-[15px] sm:text-[16px] leading-relaxed space-y-1">
               {explanationSentences.map((sentence, i) => (
                 <span
                   key={i}
                   onClick={() => toggleHighlight(i)}
                   className={`cursor-pointer transition-colors inline ${
-                    highlightedSentences.has(i) ? 'bg-yellow-200 dark:bg-yellow-700/50 rounded px-0.5' : ''
+                    highlightedSentences.has(i) ? 'bg-[#D4EDDA] rounded px-0.5' : ''
                   }`}
                 >
                   {sentence}{' '}
                 </span>
               ))}
             </div>
-            <p className="text-xs text-green-600/60 dark:text-green-400/40 mt-3">
-              Tap any sentence to highlight it for revision
-            </p>
+            <p className="text-[11px] text-[#86868B] mt-3">Tap any sentence to highlight it</p>
           </div>
         )}
 
-        {/* Reference Values — only after submit */}
+        {/* Reference Values */}
         {submitted && refValues && (
-          <div className="mb-8 animate-fade-up">
+          <div className="mb-6">
             <button
               onClick={() => setRefOpen(!refOpen)}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-white border border-[#E8E8ED] hover:bg-[#F5F5F7] transition-colors"
             >
-              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+              <span className="text-[13px] font-semibold text-[#6E6E73]">
                 Reference Values — {question.specialty}
               </span>
-              <svg
-                className={`w-4 h-4 text-gray-400 transition-transform ${refOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className={`w-4 h-4 text-[#86868B] transition-transform ${refOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {refOpen && (
-              <div className="mt-2 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+              <div className="mt-2 p-4 rounded-2xl bg-white border border-[#E8E8ED]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {refValues.map((ref) => (
-                    <div key={ref.name} className="flex justify-between text-sm py-1.5 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                      <span className="text-gray-600 dark:text-gray-400">{ref.name}</span>
-                      <span className="font-medium text-gray-800 dark:text-gray-200 text-right ml-2">{ref.value}</span>
+                    <div key={ref.name} className="flex justify-between text-[13px] py-1.5 px-2 rounded-lg hover:bg-[#F5F5F7]">
+                      <span className="text-[#6E6E73]">{ref.name}</span>
+                      <span className="font-medium text-[#1D1D1F] text-right ml-2">{ref.value}</span>
                     </div>
                   ))}
                 </div>
@@ -374,19 +347,19 @@ export default function AnswerClient({
         )}
 
         {/* Signup CTA */}
-        <div className="gradient-bg-subtle rounded-2xl p-6 sm:p-8 border border-gray-200/50 dark:border-gray-800/50 mb-8 animate-fade-up">
-          <h3 className="text-center font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E8E8ED] mb-6">
+          <h3 className="text-center font-serif-display text-[#1D1D1F] text-[18px] mb-4">
             Get a question like this every morning — free
           </h3>
           <SubscribeForm />
         </div>
 
         {/* Footer */}
-        <footer className="text-center pt-8 pb-12 border-t border-gray-200 dark:border-gray-800">
-          <a href="/privacy" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <footer className="text-center pt-6 pb-10 border-t border-[#E8E8ED]">
+          <a href="/privacy" className="text-[12px] text-[#1A6B52] hover:underline transition-colors">
             Privacy Policy
           </a>
-          <p className="text-xs text-gray-400 dark:text-gray-600 max-w-lg mx-auto leading-relaxed mt-4">
+          <p className="text-[11px] text-[#86868B] max-w-lg mx-auto leading-relaxed mt-4">
             {DISCLAIMER}
           </p>
         </footer>

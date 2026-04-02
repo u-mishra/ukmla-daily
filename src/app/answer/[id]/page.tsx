@@ -47,11 +47,11 @@ export default async function AnswerPage({ params, searchParams }: Props) {
 
   if (error || !question) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-5">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Question not found</h1>
-          <p className="text-gray-500">This question may have been removed or the link is incorrect.</p>
-          <a href="/" className="mt-4 inline-block gradient-text font-semibold">← Back to UKMLA Daily</a>
+          <h1 className="text-2xl font-bold text-[#1D1D1F] mb-2">Question not found</h1>
+          <p className="text-[#86868B]">This question may have been removed or the link is incorrect.</p>
+          <a href="/" className="mt-4 inline-block text-[#1A6B52] font-semibold">← Back to UKMLA Daily</a>
         </div>
       </div>
     );
