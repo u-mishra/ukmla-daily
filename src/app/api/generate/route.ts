@@ -33,36 +33,65 @@ interface NotionBlock {
 }
 
 function extractTextFromBlock(block: NotionBlock): string {
-  const types = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'toggle'] as const;
+  const types = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'toggle', 'callout', 'quote', 'to_do', 'table_row'] as const;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const b = block as any;
   for (const type of types) {
-    const content = block[type];
-    if (content && 'rich_text' in content) {
-      return content.rich_text.map((t: { plain_text: string }) => t.plain_text).join('');
+    if (b[type]?.rich_text) {
+      return b[type].rich_text.map((t: { plain_text: string }) => t.plain_text).join('');
     }
   }
   return '';
 }
 
-async function getPageContent(pageId: string): Promise<string> {
-  const blocks = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
-  let content = '';
+/**
+ * Recursively read ALL content from a Notion page, including nested content
+ * inside toggle blocks, callouts, and any other container blocks.
+ */
+async function getPageContentRecursive(blockId: string, depth: number = 0): Promise<string> {
+  if (depth > 5) return ''; // safety limit
 
-  for (const block of blocks.results) {
-    const text = extractTextFromBlock(block as NotionBlock);
-    if (text) content += text + '\n';
-  }
+  let content = '';
+  let cursor: string | undefined;
+
+  // Paginate through all blocks (pages with lots of content may exceed 100)
+  do {
+    const response = await notion.blocks.children.list({
+      block_id: blockId,
+      page_size: 100,
+      start_cursor: cursor,
+    });
+
+    for (const block of response.results) {
+      const b = block as NotionBlock & { id: string; type: string; has_children?: boolean };
+
+      // Skip child_page blocks — those are separate condition pages, not content
+      if (b.type === 'child_page') continue;
+
+      // Extract text from this block
+      const text = extractTextFromBlock(b);
+      if (text) content += text + '\n';
+
+      // CRITICAL: If this block has children (toggle, callout, column, synced_block, etc.),
+      // recursively fetch their content. This is where all the real notes live.
+      if (b.has_children) {
+        const childContent = await getPageContentRecursive(b.id, depth + 1);
+        if (childContent) content += childContent;
+      }
+    }
+
+    cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+  } while (cursor);
 
   return content;
 }
 
-function hasTextContent(blocks: NotionBlock[]): boolean {
-  for (const block of blocks) {
-    if (block.type !== 'child_page') {
-      const text = extractTextFromBlock(block);
-      if (text.trim().length > 50) return true;
-    }
-  }
-  return false;
+/**
+ * Check if a page has any non-child_page blocks (even toggle headers count).
+ * A page is a "grouping page" ONLY if it contains nothing but child_page links.
+ */
+function hasAnyContent(blocks: NotionBlock[]): boolean {
+  return blocks.some(block => block.type !== 'child_page');
 }
 
 async function getLeafConditionPages(parentId: string): Promise<Array<{ id: string; title: string }>> {
@@ -75,7 +104,7 @@ async function getLeafConditionPages(parentId: string): Promise<Array<{ id: stri
       const childPageBlocks = (childBlocks.results as Array<NotionBlock & { id: string; type: string }>)
         .filter(b => b.type === 'child_page');
 
-      if (childPageBlocks.length > 0 && !hasTextContent(childBlocks.results as NotionBlock[])) {
+      if (childPageBlocks.length > 0 && !hasAnyContent(childBlocks.results as NotionBlock[])) {
         const nested = await getLeafConditionPages(block.id);
         leafPages.push(...nested);
       } else {
@@ -120,9 +149,11 @@ async function generateQuestions(conditionName: string, content: string, logs: s
         role: 'user',
         content: `You are an expert UK medical examiner writing UKMLA Applied Knowledge Test (AKT) questions. Your questions must match the quality and style of Passmedicine and Quesmed — the gold standard for UK medical exam preparation.
 
-CLINICAL CONTENT ABOUT "${conditionName}":
+CLINICAL REVISION NOTES ABOUT "${conditionName}":
 ${content}
 ${referenceBlock}
+Generate questions primarily based on the clinical content provided above. Use the notes as your main source — reference specific facts, guidelines, and clinical details from them. You may supplement with established UK clinical knowledge (NICE, BNF, SIGN) where the notes are brief, but the core of each question should test knowledge that appears in these revision notes.
+
 Generate exactly 2 high-quality UKMLA-style Single Best Answer (SBA) questions about "${conditionName}". The 2 questions MUST test DIFFERENT clinical aspects — never two questions testing the same thing.
 
 ═══════════════════════════════════════
@@ -374,14 +405,14 @@ export async function POST(request: NextRequest) {
             const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - matchingCount;
             logs.push(`[PROCESS] "${page.title}" (${specialty.name}) — need ${questionsNeeded} question(s), ${matchingCount} existing`);
 
-            const content = await getPageContent(page.id);
+            const content = await getPageContentRecursive(page.id);
             if (!content.trim()) {
-              logs.push(`[SKIP] "${page.title}" — empty content`);
+              logs.push(`[SKIP] "${page.title}" — empty content (0 chars after recursive read)`);
               emptyContentConditions++;
               continue;
             }
 
-            logs.push(`[NOTION] "${page.title}" content: ${content.length} chars`);
+            logs.push(`[NOTION] "${page.title}" content: ${content.length} chars (recursive)`);
 
             const questions = await generateQuestions(page.title, content, logs);
 

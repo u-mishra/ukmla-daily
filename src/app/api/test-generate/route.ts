@@ -29,24 +29,39 @@ export async function GET() {
   steps.step2_conditionName = firstPage.title;
   steps.step2_conditionId = firstPage.id;
 
-  const contentBlocks = await notion.blocks.children.list({ block_id: firstPage.id, page_size: 100 });
-  let content = '';
-  for (const block of contentBlocks.results) {
-    const b = block as any;
-    const types = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'toggle'];
-    for (const type of types) {
-      if (b[type]?.rich_text) {
-        const text = b[type].rich_text.map((t: any) => t.plain_text).join('');
-        if (text) content += text + '\n';
+  // Recursively read ALL content including nested toggle/callout children
+  async function readBlocksRecursive(blockId: string, depth = 0): Promise<string> {
+    if (depth > 5) return '';
+    let text = '';
+    let cursor: string | undefined;
+    do {
+      const res = await notion.blocks.children.list({ block_id: blockId, page_size: 100, start_cursor: cursor });
+      for (const block of res.results) {
+        const b = block as any;
+        if (b.type === 'child_page') continue;
+        const types = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'toggle', 'callout', 'quote', 'to_do'];
+        for (const type of types) {
+          if (b[type]?.rich_text) {
+            const t = b[type].rich_text.map((r: any) => r.plain_text).join('');
+            if (t) text += t + '\n';
+          }
+        }
+        if (b.has_children) {
+          text += await readBlocksRecursive(b.id, depth + 1);
+        }
       }
-    }
+      cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
+    } while (cursor);
+    return text;
   }
 
+  const content = await readBlocksRecursive(firstPage.id);
+
   steps.step3_contentLength = content.length;
-  steps.step3_contentPreview = content.substring(0, 300);
+  steps.step3_contentPreview = content.substring(0, 500);
 
   if (!content.trim()) {
-    return NextResponse.json({ ...steps, error: 'Page has no text content' });
+    return NextResponse.json({ ...steps, error: 'Page has no text content (even after recursive read)' });
   }
 
   // Step 3: Call Claude
