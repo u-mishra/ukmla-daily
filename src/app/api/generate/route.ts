@@ -55,42 +55,30 @@ async function getPageContent(pageId: string): Promise<string> {
   return content;
 }
 
-/**
- * Check if a page has meaningful clinical content (not just links to subpages).
- * A page is a "grouping page" if it only contains child_page blocks and no real text.
- */
 function hasTextContent(blocks: NotionBlock[]): boolean {
   for (const block of blocks) {
     if (block.type !== 'child_page') {
       const text = extractTextFromBlock(block);
-      if (text.trim().length > 50) return true; // meaningful content threshold
+      if (text.trim().length > 50) return true;
     }
   }
   return false;
 }
 
-/**
- * Recursively get all leaf condition pages under a specialty page.
- * If a child page has its own child pages (subpages), recurse into them.
- * Only return leaf pages that have actual clinical content.
- */
 async function getLeafConditionPages(parentId: string): Promise<Array<{ id: string; title: string }>> {
   const blocks = await notion.blocks.children.list({ block_id: parentId, page_size: 100 });
   const leafPages: Array<{ id: string; title: string }> = [];
 
   for (const block of blocks.results as Array<NotionBlock & { id: string; type: string }>) {
     if (block.type === 'child_page' && block.child_page) {
-      // Check if this child page itself has subpages
       const childBlocks = await notion.blocks.children.list({ block_id: block.id, page_size: 100 });
       const childPageBlocks = (childBlocks.results as Array<NotionBlock & { id: string; type: string }>)
         .filter(b => b.type === 'child_page');
 
       if (childPageBlocks.length > 0 && !hasTextContent(childBlocks.results as NotionBlock[])) {
-        // This is a grouping page — recurse into its children
         const nested = await getLeafConditionPages(block.id);
         leafPages.push(...nested);
       } else {
-        // This is a leaf page with clinical content
         leafPages.push({ id: block.id, title: block.child_page.title });
       }
     }
@@ -122,14 +110,8 @@ function buildReferenceBlock(conditionName: string): string {
 const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 const OPTION_KEYS = ['option_a', 'option_b', 'option_c', 'option_d', 'option_e'] as const;
 
-/**
- * Balance answer distribution across a batch of questions.
- * If any position has <15% or >25% of answers, swap options on
- * overrepresented questions to move their correct answer to an
- * underrepresented position.
- */
 function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQuestion[] {
-  if (questions.length < 5) return questions; // too few to balance
+  if (questions.length < 5) return questions;
 
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
   for (const q of questions) counts[q.correct_answer]++;
@@ -138,7 +120,6 @@ function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQue
   const minCount = Math.floor(total * 0.15);
   const maxCount = Math.ceil(total * 0.25);
 
-  // Find over- and under-represented positions
   const over: string[] = [];
   const under: string[] = [];
   for (const letter of ANSWER_LETTERS) {
@@ -148,12 +129,9 @@ function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQue
 
   if (over.length === 0 || under.length === 0) return questions;
 
-  // Swap: for each overrepresented position, find questions with that answer
-  // and swap with an underrepresented position
   for (const fromLetter of over) {
     while (counts[fromLetter] > maxCount && under.length > 0) {
       const toLetter = under[0];
-      // Find a question with correct_answer === fromLetter
       const qi = questions.findIndex(q => q.correct_answer === fromLetter);
       if (qi === -1) break;
 
@@ -163,7 +141,6 @@ function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQue
       const fromKey = OPTION_KEYS[fromIdx];
       const toKey = OPTION_KEYS[toIdx];
 
-      // Swap the option text
       const temp = q[fromKey];
       q[fromKey] = q[toKey];
       q[toKey] = temp;
@@ -173,7 +150,6 @@ function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQue
       counts[fromLetter]--;
       counts[toLetter]++;
 
-      // Check if toLetter is no longer under-represented
       if (counts[toLetter] >= minCount) under.shift();
     }
   }
@@ -181,11 +157,13 @@ function balanceAnswerDistribution(questions: GeneratedQuestion[]): GeneratedQue
   return questions;
 }
 
-async function generateQuestions(conditionName: string, content: string): Promise<GeneratedQuestion[]> {
+async function generateQuestions(conditionName: string, content: string, logs: string[]): Promise<GeneratedQuestion[]> {
   const referenceBlock = buildReferenceBlock(conditionName);
 
+  logs.push(`[API] Calling Claude for "${conditionName}" (content: ${content.length} chars)`);
+
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-opus-4-6',
     max_tokens: 8000,
     messages: [
       {
@@ -308,13 +286,32 @@ Return ONLY the JSON array. No markdown, no code fences, no other text.`,
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Failed to parse questions from AI response');
+  logs.push(`[API] Response for "${conditionName}": ${text.length} chars, usage: ${JSON.stringify(response.usage)}`);
 
-  return JSON.parse(jsonMatch[0]);
+  if (!text) {
+    logs.push(`[API] ERROR: Empty response for "${conditionName}"`);
+    throw new Error(`Empty AI response for "${conditionName}"`);
+  }
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    logs.push(`[API] ERROR: No JSON array found in response for "${conditionName}". Raw text (first 500 chars): ${text.substring(0, 500)}`);
+    throw new Error(`Failed to parse questions from AI response for "${conditionName}"`);
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    logs.push(`[API] Parsed ${parsed.length} question(s) for "${conditionName}"`);
+    return parsed;
+  } catch (parseErr) {
+    logs.push(`[API] ERROR: JSON parse failed for "${conditionName}": ${parseErr}. Raw match (first 500 chars): ${jsonMatch[0].substring(0, 500)}`);
+    throw parseErr;
+  }
 }
 
 export async function POST(request: NextRequest) {
+  const logs: string[] = [];
+
   try {
     const isAutoTrigger = new URL(request.url).searchParams.get('auto') === 'true';
     const url = new URL(request.url);
@@ -341,7 +338,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      // If regenerate flag is set, mark all pending questions as rejected
       if (regenerate || body.regenerate) {
         const { error: rejectError } = await supabase
           .from('questions')
@@ -349,7 +345,7 @@ export async function POST(request: NextRequest) {
           .eq('status', 'pending');
 
         if (rejectError) {
-          console.error('Failed to reject pending questions:', rejectError);
+          logs.push(`[REGEN] Failed to reject pending questions: ${JSON.stringify(rejectError)}`);
         }
       }
     }
@@ -357,84 +353,121 @@ export async function POST(request: NextRequest) {
     let totalGenerated = 0;
     let skippedConditions = 0;
     let totalConditions = 0;
+    let emptyContentConditions = 0;
     const MAX_QUESTIONS_PER_CONDITION = 2;
     const specialtyBreakdown: Record<string, number> = {};
+    const skippedDetails: string[] = [];
+    const errors: string[] = [];
 
-    // Fetch all existing non-rejected questions to check for duplicates
-    const { data: existingQuestions } = await supabase
+    // Fetch existing non-rejected questions to check for duplicates
+    // IMPORTANT: only count pending/approved/sent — NOT rejected
+    const { data: existingQuestions, error: existingError } = await supabase
       .from('questions')
-      .select('vignette')
+      .select('vignette, specialty')
       .in('status', ['pending', 'approved', 'sent']);
 
-    const existingVignettes = (existingQuestions || []).map(q =>
-      q.vignette.toLowerCase()
-    );
+    if (existingError) {
+      logs.push(`[DB] ERROR fetching existing questions: ${JSON.stringify(existingError)}`);
+    }
+
+    const existingCount = existingQuestions?.length || 0;
+    logs.push(`[DB] Found ${existingCount} existing non-rejected questions`);
+
+    // Build a per-specialty vignette count for smarter duplicate detection
+    const existingBySpecialty: Record<string, string[]> = {};
+    for (const q of existingQuestions || []) {
+      if (!existingBySpecialty[q.specialty]) existingBySpecialty[q.specialty] = [];
+      existingBySpecialty[q.specialty].push(q.vignette.toLowerCase());
+    }
+
+    for (const [spec, vigs] of Object.entries(existingBySpecialty)) {
+      logs.push(`[DB] Existing: ${spec} = ${vigs.length} question(s)`);
+    }
 
     // Collect all generated questions for batch answer balancing
     const allGenerated: { question: GeneratedQuestion; specialty: string }[] = [];
 
     // Loop through ALL specialty pages
     for (const specialty of SPECIALTY_PAGES) {
-      console.log(`Processing specialty: ${specialty.name} (${specialty.id})`);
+      logs.push(`\n[NOTION] === Processing specialty: ${specialty.name} ===`);
       let conditionsInSpecialty = 0;
 
       try {
-        // Recursively get all leaf condition pages (handles nested subpages)
         const conditionPages = await getLeafConditionPages(specialty.id);
+        logs.push(`[NOTION] Found ${conditionPages.length} condition page(s) for ${specialty.name}: ${conditionPages.map(p => p.title).join(', ')}`);
         totalConditions += conditionPages.length;
 
         for (const page of conditionPages) {
           try {
             const conditionLower = page.title.toLowerCase();
 
-            // Count existing questions that mention this condition in the vignette
+            // Duplicate detection: count existing questions whose specialty matches
+            // AND whose vignette contains all significant keywords from the condition name
             const keywords = conditionLower
               .split(/[\s\-\/,]+/)
-              .filter(w => w.length > 2);
+              .filter(w => w.length > 3); // raised threshold from 2 to 3 to avoid false matches
 
-            const existingCount = existingVignettes.filter(vignette =>
-              keywords.every(kw => vignette.includes(kw))
-            ).length;
+            const specialtyVignettes = existingBySpecialty[specialty.name] || [];
+            const matchingCount = keywords.length > 0
+              ? specialtyVignettes.filter(vignette => keywords.some(kw => vignette.includes(kw))).length
+              : 0;
 
-            if (existingCount >= MAX_QUESTIONS_PER_CONDITION) {
-              console.log(`Skipping "${page.title}" (${specialty.name}) — already has ${existingCount} question(s)`);
+            if (matchingCount >= MAX_QUESTIONS_PER_CONDITION) {
+              const msg = `Skipped "${page.title}" (${specialty.name}) — ${matchingCount} existing question(s) match keywords [${keywords.join(', ')}]`;
+              logs.push(`[SKIP] ${msg}`);
+              skippedDetails.push(msg);
               skippedConditions++;
               continue;
             }
 
-            const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - existingCount;
+            const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - matchingCount;
+            logs.push(`[PROCESS] "${page.title}" (${specialty.name}) — need ${questionsNeeded} question(s), ${matchingCount} existing`);
 
             const content = await getPageContent(page.id);
-            if (!content.trim()) continue;
+            if (!content.trim()) {
+              logs.push(`[SKIP] "${page.title}" — empty content`);
+              emptyContentConditions++;
+              continue;
+            }
 
-            const questions = await generateQuestions(page.title, content);
+            logs.push(`[NOTION] "${page.title}" content: ${content.length} chars`);
 
-            // Tag with TOP-LEVEL specialty name (e.g. "Neurology", not "Brain Bleeds")
+            const questions = await generateQuestions(page.title, content, logs);
+
             const toInsert = questions.slice(0, questionsNeeded);
             for (const q of toInsert) {
               q.specialty = specialty.name;
               allGenerated.push({ question: q, specialty: specialty.name });
               conditionsInSpecialty++;
             }
+
+            logs.push(`[GEN] Generated ${toInsert.length} question(s) for "${page.title}"`);
           } catch (pageError) {
-            console.error(`Failed to process page "${page.title}" (${specialty.name}):`, pageError);
+            const errMsg = `Failed "${page.title}" (${specialty.name}): ${pageError instanceof Error ? pageError.message : String(pageError)}`;
+            logs.push(`[ERROR] ${errMsg}`);
+            errors.push(errMsg);
           }
         }
       } catch (specialtyError) {
-        console.error(`Failed to process specialty "${specialty.name}":`, specialtyError);
+        const errMsg = `Failed specialty "${specialty.name}": ${specialtyError instanceof Error ? specialtyError.message : String(specialtyError)}`;
+        logs.push(`[ERROR] ${errMsg}`);
+        errors.push(errMsg);
       }
 
       specialtyBreakdown[specialty.name] = conditionsInSpecialty;
     }
 
-    // Post-process: balance answer distribution across the whole batch
+    logs.push(`\n[BATCH] Total questions to insert: ${allGenerated.length}`);
+
+    // Post-process: balance answer distribution
     const questionsOnly = allGenerated.map(g => g.question);
     const balanced = balanceAnswerDistribution(questionsOnly);
 
     // Insert all balanced questions
+    const insertErrors: string[] = [];
     for (let i = 0; i < balanced.length; i++) {
       const q = balanced[i];
-      const { error } = await supabase.from('questions').insert({
+      const { error: insertError, data: insertData } = await supabase.from('questions').insert({
         specialty: q.specialty,
         difficulty: q.difficulty,
         vignette: q.vignette,
@@ -446,8 +479,16 @@ export async function POST(request: NextRequest) {
         correct_answer: q.correct_answer,
         explanation: q.explanation,
         status: 'pending',
-      });
-      if (!error) totalGenerated++;
+      }).select('id');
+
+      if (insertError) {
+        const errMsg = `Insert failed for question ${i} (${q.specialty}): ${JSON.stringify(insertError)}`;
+        logs.push(`[DB] ERROR: ${errMsg}`);
+        insertErrors.push(errMsg);
+      } else {
+        totalGenerated++;
+        logs.push(`[DB] Inserted question ${i} (${q.specialty}) — id: ${insertData?.[0]?.id}`);
+      }
     }
 
     if (isAutoTrigger && totalGenerated > 0) {
@@ -455,7 +496,7 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: 'UKMLA Daily <question@ukmladaily.co.uk>',
           to: 'mishra.u3310@gmail.com',
-          subject: `📋 ${totalGenerated} new questions ready for review`,
+          subject: `${totalGenerated} new questions ready for review`,
           html: notificationEmailHtml(totalGenerated),
         });
       } catch (emailError) {
@@ -463,18 +504,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Print all logs to console
+    for (const log of logs) console.log(log);
+
     const breakdownStr = Object.entries(specialtyBreakdown)
       .map(([name, count]) => `${name}: ${count}`)
       .join(', ');
-    const skippedMsg = skippedConditions > 0 ? ` Skipped ${skippedConditions} condition(s) that already have ${MAX_QUESTIONS_PER_CONDITION}+ questions.` : '';
+
+    const messageParts = [
+      `Generated ${totalGenerated} question(s) from ${totalConditions} conditions across ${SPECIALTY_PAGES.length} specialties.`,
+      `Breakdown: ${breakdownStr}.`,
+    ];
+    if (skippedConditions > 0) messageParts.push(`Skipped ${skippedConditions} condition(s) (already have ${MAX_QUESTIONS_PER_CONDITION}+ questions).`);
+    if (emptyContentConditions > 0) messageParts.push(`${emptyContentConditions} condition(s) had empty content.`);
+    if (errors.length > 0) messageParts.push(`${errors.length} error(s) occurred.`);
+    if (insertErrors.length > 0) messageParts.push(`${insertErrors.length} insert error(s).`);
+
     return NextResponse.json({
-      message: `Generated ${totalGenerated} questions from ${totalConditions} conditions across ${SPECIALTY_PAGES.length} specialties (${breakdownStr}).${skippedMsg}`,
+      message: messageParts.join(' '),
       count: totalGenerated,
       breakdown: specialtyBreakdown,
+      totalConditions,
+      skippedConditions,
+      emptyContentConditions,
+      errors: errors.length > 0 ? errors : undefined,
+      insertErrors: insertErrors.length > 0 ? insertErrors : undefined,
+      skippedDetails: skippedDetails.length > 0 ? skippedDetails : undefined,
+      logs,
     });
   } catch (error) {
+    for (const log of logs) console.log(log);
+    const errMsg = error instanceof Error ? error.message : String(error);
     console.error('Generate error:', error);
-    return NextResponse.json({ error: 'Failed to generate questions.' }, { status: 500 });
+    return NextResponse.json({
+      error: `Failed to generate questions: ${errMsg}`,
+      logs,
+    }, { status: 500 });
   }
 }
 
