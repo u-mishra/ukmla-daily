@@ -10,7 +10,6 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// All specialty source pages — each is a top-level Notion page whose children are conditions
 const SPECIALTY_PAGES = [
   { id: '304c4f38-3608-809f-90cb-f08a88eed078', name: 'ENT' },
   { id: '2e6c4f38-3608-80b4-8559-ef6c08f49709', name: 'Haematology' },
@@ -44,52 +43,31 @@ function extractTextFromBlock(block: NotionBlock): string {
   return '';
 }
 
-/**
- * Recursively read ALL content from a Notion page, including nested content
- * inside toggle blocks, callouts, and any other container blocks.
- */
 async function getPageContentRecursive(blockId: string, depth: number = 0): Promise<string> {
-  if (depth > 5) return ''; // safety limit
-
+  if (depth > 5) return '';
   let content = '';
   let cursor: string | undefined;
-
-  // Paginate through all blocks (pages with lots of content may exceed 100)
   do {
     const response = await notion.blocks.children.list({
       block_id: blockId,
       page_size: 100,
       start_cursor: cursor,
     });
-
     for (const block of response.results) {
       const b = block as NotionBlock & { id: string; type: string; has_children?: boolean };
-
-      // Skip child_page blocks — those are separate condition pages, not content
       if (b.type === 'child_page') continue;
-
-      // Extract text from this block
       const text = extractTextFromBlock(b);
       if (text) content += text + '\n';
-
-      // CRITICAL: If this block has children (toggle, callout, column, synced_block, etc.),
-      // recursively fetch their content. This is where all the real notes live.
       if (b.has_children) {
         const childContent = await getPageContentRecursive(b.id, depth + 1);
         if (childContent) content += childContent;
       }
     }
-
     cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
   } while (cursor);
-
   return content;
 }
 
-/**
- * Check if a page has any non-child_page blocks (even toggle headers count).
- * A page is a "grouping page" ONLY if it contains nothing but child_page links.
- */
 function hasAnyContent(blocks: NotionBlock[]): boolean {
   return blocks.some(block => block.type !== 'child_page');
 }
@@ -97,13 +75,11 @@ function hasAnyContent(blocks: NotionBlock[]): boolean {
 async function getLeafConditionPages(parentId: string): Promise<Array<{ id: string; title: string }>> {
   const blocks = await notion.blocks.children.list({ block_id: parentId, page_size: 100 });
   const leafPages: Array<{ id: string; title: string }> = [];
-
   for (const block of blocks.results as Array<NotionBlock & { id: string; type: string }>) {
     if (block.type === 'child_page' && block.child_page) {
       const childBlocks = await notion.blocks.children.list({ block_id: block.id, page_size: 100 });
       const childPageBlocks = (childBlocks.results as Array<NotionBlock & { id: string; type: string }>)
         .filter(b => b.type === 'child_page');
-
       if (childPageBlocks.length > 0 && !hasAnyContent(childBlocks.results as NotionBlock[])) {
         const nested = await getLeafConditionPages(block.id);
         leafPages.push(...nested);
@@ -112,7 +88,6 @@ async function getLeafConditionPages(parentId: string): Promise<Array<{ id: stri
       }
     }
   }
-
   return leafPages;
 }
 
@@ -136,10 +111,34 @@ function buildReferenceBlock(conditionName: string): string {
   return `\nREFERENCE VALUES (use these when including investigation results in vignettes):\n${lines}\n`;
 }
 
-async function generateQuestions(conditionName: string, content: string, logs: string[]): Promise<GeneratedQuestion[]> {
+/**
+ * Find the most underrepresented answer position (A-E) for a specialty.
+ */
+async function getUnderrepresentedAnswer(specialty: string): Promise<string> {
+  const { data } = await supabase
+    .from('questions')
+    .select('correct_answer')
+    .eq('specialty', specialty)
+    .in('status', ['pending', 'approved', 'sent']);
+
+  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+  for (const q of data || []) {
+    counts[q.correct_answer] = (counts[q.correct_answer] || 0) + 1;
+  }
+
+  // Return the letter with the fewest questions
+  return Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0];
+}
+
+async function generateQuestions(
+  conditionName: string,
+  content: string,
+  forcedAnswer: string,
+  logs: string[]
+): Promise<GeneratedQuestion[]> {
   const referenceBlock = buildReferenceBlock(conditionName);
 
-  logs.push(`[API] Calling Claude for "${conditionName}" (content: ${content.length} chars)`);
+  logs.push(`[API] Calling Claude for "${conditionName}" (content: ${content.length} chars, forced answer: ${forcedAnswer})`);
 
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-6',
@@ -155,6 +154,12 @@ ${referenceBlock}
 Generate questions primarily based on the clinical content provided above. Use the notes as your main source — reference specific facts, guidelines, and clinical details from them. You may supplement with established UK clinical knowledge (NICE, BNF, SIGN) where the notes are brief, but the core of each question should test knowledge that appears in these revision notes.
 
 Generate exactly 2 high-quality UKMLA-style Single Best Answer (SBA) questions about "${conditionName}". The 2 questions MUST test DIFFERENT clinical aspects — never two questions testing the same thing.
+
+═══════════════════════════════════════
+ANSWER DISTRIBUTION — MANDATORY
+═══════════════════════════════════════
+
+For the FIRST question, the correct answer MUST be option ${forcedAnswer}. Structure the options so that the correct answer falls in position ${forcedAnswer}. The second question should use a DIFFERENT position.
 
 ═══════════════════════════════════════
 QUESTION TOPIC DISTRIBUTION
@@ -206,7 +211,6 @@ OPTION & DISTRACTOR REQUIREMENTS
   — Don't write "Type 4 (hyperkalaemic) RTA" when the stem mentions hyperkalaemia
   — Don't write "Addisonian crisis" when the stem describes hyperpigmentation and hypotension
   — Keep option text neutral and factual
-• ANSWER DISTRIBUTION: For these 2 questions, use two DIFFERENT correct answer positions (A–E). Distribute evenly — don't favour B, C, D over A and E.
 
 ═══════════════════════════════════════
 DIFFICULTY
@@ -352,21 +356,26 @@ export async function POST(request: NextRequest) {
     const specialtyBreakdown: Record<string, number> = {};
     const skippedDetails: string[] = [];
     const errors: string[] = [];
-
-    // Log existing question counts (duplicate check now happens per-condition with fresh queries)
-    const { count: existingCount } = await supabase
-      .from('questions')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['pending', 'approved', 'sent']);
-
-    logs.push(`[DB] Found ${existingCount || 0} existing non-rejected questions`);
-
     const insertErrors: string[] = [];
 
-    // Loop through ALL specialty pages — insert each question IMMEDIATELY after generation
-    // so that if the function times out, completed questions are already in the database
-    for (const specialty of SPECIALTY_PAGES) {
-      logs.push(`\n[NOTION] === Processing specialty: ${specialty.name} ===`);
+    // Count existing questions per specialty to sort by fewest first
+    const specialtyCounts: { name: string; id: string; count: number }[] = [];
+    for (const sp of SPECIALTY_PAGES) {
+      const { count } = await supabase
+        .from('questions')
+        .select('*', { count: 'exact', head: true })
+        .eq('specialty', sp.name)
+        .in('status', ['pending', 'approved', 'sent']);
+      specialtyCounts.push({ ...sp, count: count || 0 });
+    }
+
+    // Sort: fewest existing questions first
+    specialtyCounts.sort((a, b) => a.count - b.count);
+    logs.push(`[DB] Specialty order (fewest first): ${specialtyCounts.map(s => `${s.name}(${s.count})`).join(', ')}`);
+
+    // Process specialties in order of fewest existing questions
+    for (const specialty of specialtyCounts) {
+      logs.push(`\n[NOTION] === Processing specialty: ${specialty.name} (${specialty.count} existing) ===`);
       let conditionsInSpecialty = 0;
 
       try {
@@ -376,34 +385,25 @@ export async function POST(request: NextRequest) {
 
         for (const page of conditionPages) {
           try {
-            const conditionLower = page.title.toLowerCase();
-
-            const keywords = conditionLower
-              .split(/[\s\-\/,]+/)
-              .filter(w => w.length > 3);
-
-            // Re-fetch existing for this specialty to include questions saved earlier in this run
-            const { data: freshExisting } = await supabase
+            // FIX 1: Check by condition_name (exact match), not keyword matching
+            const { count: conditionCount } = await supabase
               .from('questions')
-              .select('vignette')
-              .eq('specialty', specialty.name)
+              .select('*', { count: 'exact', head: true })
+              .eq('condition_name', page.title)
               .in('status', ['pending', 'approved', 'sent']);
 
-            const specialtyVignettes = (freshExisting || []).map(q => q.vignette.toLowerCase());
-            const matchingCount = keywords.length > 0
-              ? specialtyVignettes.filter(vignette => keywords.some(kw => vignette.includes(kw))).length
-              : 0;
+            const existingForCondition = conditionCount || 0;
 
-            if (matchingCount >= MAX_QUESTIONS_PER_CONDITION) {
-              const msg = `Skipped "${page.title}" (${specialty.name}) — ${matchingCount} existing question(s) match keywords [${keywords.join(', ')}]`;
+            if (existingForCondition >= MAX_QUESTIONS_PER_CONDITION) {
+              const msg = `Skipped "${page.title}" (${specialty.name}) — already has ${existingForCondition} question(s)`;
               logs.push(`[SKIP] ${msg}`);
               skippedDetails.push(msg);
               skippedConditions++;
               continue;
             }
 
-            const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - matchingCount;
-            logs.push(`[PROCESS] "${page.title}" (${specialty.name}) — need ${questionsNeeded} question(s), ${matchingCount} existing`);
+            const questionsNeeded = MAX_QUESTIONS_PER_CONDITION - existingForCondition;
+            logs.push(`[PROCESS] "${page.title}" (${specialty.name}) — need ${questionsNeeded}, have ${existingForCondition}`);
 
             const content = await getPageContentRecursive(page.id);
             if (!content.trim()) {
@@ -414,9 +414,12 @@ export async function POST(request: NextRequest) {
 
             logs.push(`[NOTION] "${page.title}" content: ${content.length} chars (recursive)`);
 
-            const questions = await generateQuestions(page.title, content, logs);
+            // FIX 2: Get underrepresented answer position for this specialty
+            const forcedAnswer = await getUnderrepresentedAnswer(specialty.name);
 
-            // INSERT IMMEDIATELY after generation — don't batch
+            const questions = await generateQuestions(page.title, content, forcedAnswer, logs);
+
+            // Insert immediately
             const toInsert = questions.slice(0, questionsNeeded);
             for (const q of toInsert) {
               q.specialty = specialty.name;
@@ -474,7 +477,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Print all logs to console
     for (const log of logs) console.log(log);
 
     const breakdownStr = Object.entries(specialtyBreakdown)
@@ -513,7 +515,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle GET for Vercel cron
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   if (authHeader?.replace('Bearer ', '') !== process.env.CRON_SECRET) {
