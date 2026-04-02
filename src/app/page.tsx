@@ -7,6 +7,8 @@ const DISCLAIMER =
 
 const SPECIALTIES = ['ENT', 'Haematology', 'Neurology', 'Renal', 'Infectious Diseases'];
 
+const G = '#1A6B52'; // primary teal-green
+
 const SAMPLE_QUESTION = {
   specialty: 'ENT',
   difficulty: 'Hard',
@@ -24,7 +26,7 @@ const SAMPLE_QUESTION = {
     'Unilateral sensorineural hearing loss with tinnitus should raise suspicion of a vestibular schwannoma (acoustic neuroma). MRI with gadolinium of the cerebellopontine angle is the gold-standard investigation to identify CPA tumours. CT temporal bones assess bony anatomy, not soft-tissue CPA lesions. Tympanometry tests middle ear compliance and is normal in sensorineural loss.',
 };
 
-/* ─── Intersection Observer Hook ─── */
+/* ─── Hooks ─── */
 function useScrollReveal<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
@@ -40,7 +42,6 @@ function useScrollReveal<T extends HTMLElement>() {
   return ref;
 }
 
-/* ─── Stagger children on scroll ─── */
 function useStaggerReveal<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
@@ -49,11 +50,9 @@ function useStaggerReveal<T extends HTMLElement>() {
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          const children = el.querySelectorAll('[data-stagger]');
-          children.forEach((child, i) => {
-            const htmlChild = child as HTMLElement;
-            htmlChild.style.transitionDelay = `${i * 90}ms`;
-            htmlChild.classList.add('stagger-visible');
+          el.querySelectorAll('[data-stagger]').forEach((child, i) => {
+            (child as HTMLElement).style.transitionDelay = `${i * 90}ms`;
+            child.classList.add('stagger-visible');
           });
           obs.unobserve(el);
         }
@@ -67,7 +66,7 @@ function useStaggerReveal<T extends HTMLElement>() {
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Main Page                       ─── */
+/* ─── Page                            ─── */
 /* ═══════════════════════════════════════ */
 export default function Home() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -80,18 +79,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#F5F5F7]">
-      {/* ─── Nav ─── */}
+      {/* Nav */}
       <nav className={`nav-slide fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        navScrolled
-          ? 'bg-[#F5F5F7]/80 backdrop-blur-xl border-b border-black/[0.06]'
-          : 'bg-transparent'
+        navScrolled ? 'bg-[#F5F5F7]/80 backdrop-blur-xl border-b border-black/[0.06]' : 'bg-transparent'
       }`}>
         <div className="max-w-6xl mx-auto px-5 h-12 flex items-center justify-between">
-          <span className="text-[13px] font-semibold tracking-tight text-[#1D1D1F]">UKMLA Daily</span>
-          <a
-            href="#subscribe"
-            className="cta-link text-[13px] font-medium text-[#0066CC] hover:text-[#0055AA] transition-colors"
-          >
+          <span className="text-[13px] font-semibold tracking-tight">
+            <span className="text-[#1D1D1F]">UKMLA</span>{' '}
+            <span style={{ color: G }}>Daily</span>
+          </span>
+          <a href="#subscribe" className="cta-link text-[13px] font-medium transition-colors" style={{ color: G }}>
             Subscribe free <span className="cta-chevron">›</span>
           </a>
         </div>
@@ -101,38 +98,39 @@ export default function Home() {
       <DemoSection />
       <CustomiseSection />
       <SignupSection />
-
-      {/* ─── Footer ─── */}
       <FooterSection />
     </main>
   );
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Hero Section                    ─── */
+/* ─── Hero                            ─── */
 /* ═══════════════════════════════════════ */
 function HeroSection() {
   return (
-    <section className="bg-[#F5F5F7] pt-20 sm:pt-24 pb-8 sm:pb-12">
+    <section className="bg-[#F5F5F7] pt-20 sm:pt-24 pb-8 sm:pb-10">
       <div className="max-w-3xl mx-auto px-5 text-center">
-        <p className="stagger-in text-[13px] font-semibold tracking-[0.2em] uppercase text-[#86868B] mb-4"
-           style={{ animationDelay: '0.2s' }}>
-          UKMLA Daily
+        <p className="stagger-in text-[14px] font-bold tracking-[3px] uppercase mb-4"
+           style={{ color: G, animationDelay: '0.2s' }}>
+          UKMLA DAILY
         </p>
 
         <h1 className="clip-reveal font-serif-display text-[clamp(2.5rem,7vw,4.5rem)] leading-[1.05] tracking-[-0.02em] text-[#1D1D1F] mb-4"
             style={{ animationDelay: '0.4s' }}>
-          Daily SBAs. Straight<br className="hidden sm:block" /> to your inbox.
+          Daily SBAs. Straight<br className="hidden sm:block" /> to{' '}
+          <span className="italic" style={{ color: G }}>your inbox.</span>
         </h1>
 
-        <p className="stagger-in text-[17px] sm:text-[19px] text-[#86868B] leading-relaxed max-w-xl mx-auto mb-5"
+        <p className="stagger-in text-[17px] sm:text-[19px] text-[#6E6E73] leading-relaxed max-w-xl mx-auto mb-5"
            style={{ animationDelay: '0.6s' }}>
-          Choose your rotation. Wake up to high-yield revision daily, completely free.
+          Choose your rotation. One clinical SBA every morning, completely free.
         </p>
 
-        <p className="stagger-in text-[13px] text-[#86868B] tracking-wide"
+        <p className="stagger-in text-[13px] text-[#6E6E73] tracking-wide"
            style={{ animationDelay: '0.8s' }}>
-          UKMLA-style SBAs · Full explanations · Pick your rotation · Always free
+          UKMLA-style SBAs{' '}
+          <span style={{ color: G }}>·</span> Full explanations{' '}
+          <span style={{ color: G }}>·</span> Pick your rotation
         </p>
       </div>
     </section>
@@ -140,31 +138,28 @@ function HeroSection() {
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Demo Section                    ─── */
+/* ─── Demo                            ─── */
 /* ═══════════════════════════════════════ */
 function DemoSection() {
-  const sectionRef = useStaggerReveal<HTMLDivElement>();
-
+  const ref = useStaggerReveal<HTMLDivElement>();
   return (
-    <section id="demo" className="bg-[#1D1D1F] relative overflow-hidden py-14 sm:py-20">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(0,102,204,0.08),transparent_70%)] pointer-events-none" />
-
-      <div ref={sectionRef} className="relative z-10 max-w-6xl mx-auto px-5">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+    <section id="demo" className="bg-[#1A2332] relative overflow-hidden py-14 sm:py-20">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(26,107,82,0.18),transparent_70%)] pointer-events-none" />
+      <div ref={ref} className="relative z-10 max-w-6xl mx-auto px-5">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
           <div className="lg:w-[340px] flex-shrink-0 text-center lg:text-left">
-            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-white mb-5">
+            <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-white mb-4">
               This is what lands in your inbox.
             </h2>
-            <p data-stagger className="stagger-item text-[15px] text-[#86868B] leading-relaxed mb-6">
-              A clinical vignette. Five options. Select your answer, eliminate distractors, test your reasoning — then reveal the full explanation.
+            <p data-stagger className="stagger-item text-[15px] text-[#8899A6] leading-relaxed mb-5">
+              Select your answer, eliminate distractors, test your reasoning.
             </p>
-            <a data-stagger href="#subscribe" className="stagger-item cta-link text-[15px] font-medium text-[#2997FF] hover:text-[#6CB4FF] transition-colors inline-block">
+            <a data-stagger href="#subscribe" className="stagger-item cta-link text-[15px] font-medium inline-block transition-colors" style={{ color: '#5CC9A7' }}>
               Start receiving <span className="cta-chevron">›</span>
             </a>
           </div>
-
           <div data-stagger className="stagger-item flex-1 w-full max-w-[520px]">
-            <InteractiveQuestionCard />
+            <QuestionCard />
           </div>
         </div>
       </div>
@@ -173,9 +168,9 @@ function DemoSection() {
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Interactive Question Card       ─── */
+/* ─── Question Card                   ─── */
 /* ═══════════════════════════════════════ */
-function InteractiveQuestionCard() {
+function QuestionCard() {
   const [selected, setSelected] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [greetingVisible, setGreetingVisible] = useState(false);
@@ -198,19 +193,12 @@ function InteractiveQuestionCard() {
     return () => obs.disconnect();
   }, []);
 
-  const handleSelect = (letter: string) => {
-    if (!revealed) setSelected(letter);
-  };
-
-  const handleReveal = () => {
-    if (selected) setRevealed(true);
-  };
-
   const q = SAMPLE_QUESTION;
 
   return (
-    <div ref={cardRef} className="demo-stagger bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#3A3A3C] border-b border-white/[0.06]">
+    <div ref={cardRef} className="demo-stagger bg-white rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
+      {/* Title bar */}
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#F5F5F7] border-b border-black/[0.06]">
         <div className="w-[10px] h-[10px] rounded-full bg-[#FF5F57]" />
         <div className="w-[10px] h-[10px] rounded-full bg-[#FEBC2E]" />
         <div className="w-[10px] h-[10px] rounded-full bg-[#28C840]" />
@@ -218,19 +206,23 @@ function InteractiveQuestionCard() {
       </div>
 
       <div className="p-5 sm:p-6">
+        {/* Greeting */}
         <div className={`transition-all duration-500 ${greetingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-          <p className="text-[15px] text-[#86868B] mb-4">Good morning —</p>
+          <p className="font-serif-display italic text-[15px] text-[#6E6E73] mb-4">Good morning —</p>
         </div>
 
+        {/* Badges */}
         <div className="flex gap-2 mb-4">
-          <span className="px-2.5 py-1 bg-[#0066CC]/20 text-[#2997FF] rounded-md text-[11px] font-semibold">{q.specialty}</span>
-          <span className="px-2.5 py-1 bg-[#FF9500]/20 text-[#FF9F0A] rounded-md text-[11px] font-semibold">{q.difficulty}</span>
+          <span className="px-2.5 py-1 bg-[#E8F4F0] text-[#0F6E56] rounded-md text-[11px] font-semibold">{q.specialty}</span>
+          <span className="px-2.5 py-1 bg-[#FEF3E8] text-[#9A5B1D] rounded-md text-[11px] font-semibold">{q.difficulty}</span>
         </div>
 
-        <p className="font-serif-display text-[14px] sm:text-[15px] leading-relaxed text-[#E5E5EA] mb-5">
+        {/* Vignette — Crimson Pro */}
+        <p className="font-crimson text-[15px] sm:text-[16px] leading-[1.7] text-[#1D1D1F] mb-5">
           {q.vignette}
         </p>
 
+        {/* Options */}
         <div className="space-y-2">
           {q.options.map((opt, i) => {
             const isCorrect = opt.letter === q.correct;
@@ -238,44 +230,44 @@ function InteractiveQuestionCard() {
             const isCorrectReveal = revealed && isCorrect;
             const shouldFade = revealed && !isCorrect && selected !== opt.letter;
 
-            let bg = 'bg-[#3A3A3C]';
-            let border = 'border-transparent';
-            let textColor = 'text-[#E5E5EA]';
-            let letterBg = 'bg-[#48484A] text-[#AEAEB2]';
+            let borderCls = 'border-[#E5E5EA]';
+            let bgCls = 'bg-white';
+            let textCls = 'text-[#1D1D1F]';
+            let letterCls = 'bg-[#F5F5F7] text-[#6E6E73]';
 
             if (!revealed && selected === opt.letter) {
-              bg = 'bg-[#0066CC]/15';
-              border = 'border-[#0066CC]/40';
-              letterBg = 'bg-[#0066CC] text-white';
-              textColor = 'text-white';
+              borderCls = 'border-[#1A6B52]';
+              bgCls = 'bg-[#F0F7F4]';
+              letterCls = 'bg-[#1A6B52] text-white';
+              textCls = 'text-[#1D1D1F]';
             }
             if (isCorrectReveal) {
-              bg = 'bg-[#30D158]/15';
-              border = 'border-[#30D158]/40';
-              letterBg = 'bg-[#30D158] text-white';
-              textColor = 'text-[#30D158]';
+              borderCls = 'border-[#1A6B52]';
+              bgCls = 'bg-[#F0F7F4]';
+              letterCls = 'bg-[#1A6B52] text-white';
+              textCls = 'text-[#1A6B52]';
             }
             if (isWrongPick) {
-              bg = 'bg-[#FF453A]/10';
-              border = 'border-[#FF453A]/40';
-              letterBg = 'bg-[#FF453A] text-white';
-              textColor = 'text-[#FF453A]';
+              borderCls = 'border-[#FF3B30]';
+              bgCls = 'bg-[#FFF5F5]';
+              letterCls = 'bg-[#FF3B30] text-white';
+              textCls = 'text-[#FF3B30]';
             }
 
             return (
               <button
                 key={opt.letter}
-                onClick={() => handleSelect(opt.letter)}
+                onClick={() => { if (!revealed) setSelected(opt.letter); }}
                 disabled={revealed}
-                className={`w-full text-left p-3 rounded-xl border flex items-start gap-3 min-h-[44px] transition-all duration-300 ${bg} ${border} ${
+                className={`w-full text-left p-3 rounded-xl border flex items-start gap-3 min-h-[44px] transition-all duration-300 ${bgCls} ${borderCls} ${
                   shouldFade ? 'slide-left-fade' : ''
                 } ${!revealed ? 'cursor-pointer active:scale-[0.99]' : ''}`}
                 style={shouldFade ? { animationDelay: `${i * 0.06}s` } : undefined}
               >
-                <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold transition-all duration-300 ${letterBg}`}>
+                <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold transition-all duration-300 ${letterCls}`}>
                   {isCorrectReveal ? '✓' : isWrongPick ? '✗' : opt.letter}
                 </span>
-                <span className={`text-[13px] sm:text-[14px] pt-0.5 transition-colors duration-300 ${textColor}`}>
+                <span className={`text-[13px] sm:text-[14px] pt-0.5 transition-colors duration-300 ${textCls}`}>
                   {opt.text}
                 </span>
               </button>
@@ -283,23 +275,27 @@ function InteractiveQuestionCard() {
           })}
         </div>
 
+        {/* Hint */}
         {!revealed && !selected && (
           <p className="breathe text-center text-[12px] text-[#86868B] mt-4">Pick an answer</p>
         )}
 
+        {/* Submit */}
         {!revealed && selected && (
           <button
-            onClick={handleReveal}
-            className="btn-shine mt-4 w-full py-3 rounded-xl bg-[#0066CC] text-white text-[14px] font-semibold transition-all active:scale-[0.99]"
+            onClick={() => setRevealed(true)}
+            className="btn-shine mt-4 w-full py-3 rounded-xl text-white text-[14px] font-semibold transition-all active:scale-[0.99]"
+            style={{ backgroundColor: G }}
           >
             Check Answer
           </button>
         )}
 
+        {/* Explanation */}
         {revealed && (
-          <div className="expand-in mt-4 p-4 rounded-xl bg-[#1C3A2A] border border-[#30D158]/20">
-            <p className="text-[11px] font-semibold text-[#30D158] uppercase tracking-wider mb-2">Explanation</p>
-            <p className="text-[13px] text-[#A8D5BA] leading-relaxed">{q.explanation}</p>
+          <div className="expand-in mt-4 p-4 rounded-xl bg-[#F0F7F4]" style={{ borderLeft: `3px solid ${G}` }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: G }}>Explanation</p>
+            <p className="font-crimson text-[13px] text-[#3D3D3D] leading-relaxed">{q.explanation}</p>
           </div>
         )}
       </div>
@@ -308,7 +304,7 @@ function InteractiveQuestionCard() {
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Customise Section               ─── */
+/* ─── Customise                       ─── */
 /* ═══════════════════════════════════════ */
 function CustomiseSection() {
   const leftRef = useStaggerReveal<HTMLDivElement>();
@@ -318,42 +314,42 @@ function CustomiseSection() {
     <section className="bg-[#F5F5F7] pt-12 sm:pt-16 pb-6 sm:pb-8">
       <div className="max-w-5xl mx-auto px-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-start">
-          {/* Left — chip grid */}
           <div ref={leftRef}>
             <h2 data-stagger className="stagger-item font-serif-display text-[clamp(1.8rem,4vw,2.5rem)] leading-[1.1] text-[#1D1D1F] mb-3">
               Pick your rotation.
             </h2>
+            <p data-stagger className="stagger-item text-[14px] text-[#6E6E73] mb-3">
+              Customise what you receive after subscribing.
+            </p>
             <div className="flex flex-wrap gap-2.5">
+              <span data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium text-white" style={{ backgroundColor: G }}>
+                All topics
+              </span>
               {SPECIALTIES.map(s => (
-                <span
-                  key={s}
-                  data-stagger
-                  className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium bg-[#1D1D1F] text-white"
-                >
+                <span key={s} data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium bg-white text-[#1D1D1F] border border-[#D2D2D7]">
                   {s}
                 </span>
               ))}
             </div>
-            <p data-stagger className="stagger-item text-[12px] text-[#86868B] mt-3">
-              Current rotations — more coming soon
+            <p data-stagger className="stagger-item text-[12px] italic text-[#86868B] mt-3">
+              More rotations coming soon
             </p>
           </div>
 
-          {/* Right — description */}
           <div ref={rightRef} className="md:pt-2">
             <h3 data-stagger className="stagger-item font-serif-display text-[1.5rem] leading-[1.2] text-[#1D1D1F] mb-4">
               One question, every morning.
             </h3>
-            <p data-stagger className="stagger-item text-[15px] text-[#86868B] leading-relaxed mb-6">
+            <p data-stagger className="stagger-item text-[15px] text-[#6E6E73] leading-relaxed mb-6">
               A clinical vignette with five options, written to match the style and difficulty of the real UKMLA Applied Knowledge Test. Select your answer, eliminate distractors, then reveal the full explanation with guidelines.
             </p>
             <div className="flex gap-8">
               <div data-stagger className="stagger-item">
-                <p className="text-[28px] font-semibold text-[#1D1D1F]">~2 min</p>
+                <p className="font-serif-display text-[28px] text-[#1D1D1F]">~2 min</p>
                 <p className="text-[12px] text-[#86868B]">Per question</p>
               </div>
               <div data-stagger className="stagger-item">
-                <p className="text-[28px] font-semibold text-[#1D1D1F]">£0</p>
+                <p className="font-serif-display text-[28px] text-[#1D1D1F]">£0</p>
                 <p className="text-[12px] text-[#86868B]">Always</p>
               </div>
             </div>
@@ -365,10 +361,10 @@ function CustomiseSection() {
 }
 
 /* ═══════════════════════════════════════ */
-/* ─── Signup Section                  ─── */
+/* ─── Signup                          ─── */
 /* ═══════════════════════════════════════ */
 function SignupSection() {
-  const sectionRef = useStaggerReveal<HTMLDivElement>();
+  const ref = useStaggerReveal<HTMLDivElement>();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -400,12 +396,12 @@ function SignupSection() {
   }, [email]);
 
   return (
-    <section id="subscribe" className="bg-[#F5F5F7] pt-10 sm:pt-14 pb-16 sm:pb-20">
-      <div ref={sectionRef} className="max-w-xl mx-auto px-5 text-center">
+    <section id="subscribe" className="bg-[#F5F5F7] border-t border-black/[0.04] pt-10 sm:pt-14 pb-14 sm:pb-18">
+      <div ref={ref} className="max-w-xl mx-auto px-5 text-center">
         <h2 data-stagger className="stagger-item font-serif-display text-[clamp(2rem,5vw,3rem)] leading-[1.1] text-[#1D1D1F] mb-3">
           Start tomorrow morning.
         </h2>
-        <p data-stagger className="stagger-item text-[15px] text-[#86868B] mb-10">
+        <p data-stagger className="stagger-item text-[15px] text-[#6E6E73] mb-8">
           Free forever. Unsubscribe anytime.
         </p>
 
@@ -422,12 +418,16 @@ function SignupSection() {
                   onChange={e => { setEmail(e.target.value); setStatus('idle'); }}
                   placeholder="your@email.com"
                   required
-                  className="flex-1 px-4 py-3.5 rounded-xl border border-[#D2D2D7] bg-white text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0066CC]/30 focus:border-[#0066CC] transition-all text-[16px] min-h-[44px]"
+                  className="flex-1 px-4 py-3.5 rounded-xl border border-[#D2D2D7] bg-white text-[#1D1D1F] placeholder-[#86868B] focus:outline-none transition-all text-[16px] min-h-[44px]"
+                  style={{ boxShadow: 'none' }}
+                  onFocus={e => { e.target.style.borderColor = G; e.target.style.boxShadow = `0 0 0 3px rgba(26,107,82,0.1)`; }}
+                  onBlur={e => { e.target.style.borderColor = '#D2D2D7'; e.target.style.boxShadow = 'none'; }}
                 />
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="btn-shine bg-[#1D1D1F] text-white font-semibold px-8 py-3.5 rounded-xl transition-all min-h-[44px] text-[15px] disabled:opacity-60 active:scale-[0.98]"
+                  className="btn-shine text-white font-semibold px-8 py-3.5 rounded-xl transition-all min-h-[44px] text-[15px] disabled:opacity-60 active:scale-[0.97]"
+                  style={{ backgroundColor: G }}
                 >
                   {status === 'loading' ? (
                     <span className="flex items-center justify-center gap-2">
@@ -447,11 +447,11 @@ function SignupSection() {
         {status === 'success' && (
           <div className="pop-in">
             <p className="text-[21px] font-semibold text-[#1D1D1F] mb-1">You&apos;re in.</p>
-            <p className="text-[15px] text-[#86868B]">See you at 7&nbsp;am.</p>
+            <p className="text-[15px] text-[#6E6E73]">See you at 7&nbsp;am.</p>
           </div>
         )}
 
-        <p data-stagger className="stagger-item mt-10 text-[12px] text-[#86868B]">
+        <p data-stagger className="stagger-item mt-8 text-[12px] text-[#86868B]">
           Join medical students across the UK.
         </p>
       </div>
@@ -470,7 +470,7 @@ function FooterSection() {
         <p className="font-serif-display text-[15px] italic text-[#86868B] mb-4">
           Built by a medical student, for medical students.
         </p>
-        <a href="/privacy" className="text-[12px] text-[#86868B] hover:text-[#1D1D1F] transition-colors">
+        <a href="/privacy" className="text-[12px] transition-colors" style={{ color: G }}>
           Privacy Policy
         </a>
         <p className="text-[11px] text-[#86868B] max-w-lg mx-auto leading-relaxed mt-4">

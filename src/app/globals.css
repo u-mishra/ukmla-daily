@@ -24,6 +24,10 @@
   .font-serif-display {
     font-family: var(--font-instrument-serif), Georgia, serif;
   }
+
+  .font-crimson {
+    font-family: var(--font-crimson-pro), 'Crimson Text', Georgia, serif;
+  }
 }
 
 /* ─── Landing page ─── */
