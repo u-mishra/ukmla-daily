@@ -127,6 +127,15 @@ export function dailyQuestionEmailHtml(question: {
       </h1>
     </div>
 
+    <!-- Specialty preferences bar -->
+    ${preferencesToken ? `
+    <div style="background:#E8F4F0;padding:10px 16px;text-align:center;">
+      <a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#1A6B52;font-size:13px;font-weight:600;text-decoration:none;">
+        &#x1F4CB; Customise your specialties &rarr;
+      </a>
+    </div>
+    ` : ''}
+
     <!-- Body -->
     <div style="background:white;padding:32px;border-radius:0 0 16px 16px;">
       <!-- Badges -->
