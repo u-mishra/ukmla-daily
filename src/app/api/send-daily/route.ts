@@ -139,15 +139,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all approved unsent questions
-    const { data: allApproved } = await supabase
+    // Get all eligible questions: both approved (unsent) and previously sent
+    // Previously-sent questions can still be sent to NEW subscribers who haven't received them
+    const { data: allEligible } = await supabase
       .from('questions')
       .select('*')
-      .eq('status', 'approved')
+      .in('status', ['approved', 'sent'])
       .order('created_at', { ascending: true });
 
-    if (!allApproved || allApproved.length === 0) {
-      return NextResponse.json({ error: 'No approved questions available to send.' }, { status: 404 });
+    if (!allEligible || allEligible.length === 0) {
+      return NextResponse.json({ error: 'No eligible questions available to send.' }, { status: 404 });
     }
 
     // Get recently sent questions for smart scheduling
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     for (const sub of subscribers as Subscriber[]) {
       try {
-        const question = await pickQuestionForSubscriber(sub, allApproved, globalRecentlySent);
+        const question = await pickQuestionForSubscriber(sub, allEligible, globalRecentlySent);
 
         if (!question) {
           // Subscriber has received all available questions in their specialties
@@ -231,16 +232,18 @@ export async function POST(request: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
 
-    // Mark all used questions as sent (update status + day_number + sent_date)
-    for (const [qId] of questionsUsed) {
-      await supabase
-        .from('questions')
-        .update({
-          status: 'sent',
-          sent_date: new Date().toISOString().split('T')[0],
-          day_number: dayNumber,
-        })
-        .eq('id', qId);
+    // Mark newly-used questions as sent (only if still 'approved'; leave already-'sent' ones alone)
+    for (const [qId, q] of questionsUsed) {
+      if (q.status === 'approved') {
+        await supabase
+          .from('questions')
+          .update({
+            status: 'sent',
+            sent_date: new Date().toISOString().split('T')[0],
+            day_number: dayNumber,
+          })
+          .eq('id', qId);
+      }
     }
 
     const response: Record<string, unknown> = {
