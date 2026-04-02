@@ -40,6 +40,31 @@ export function welcomeEmailHtml(email: string, preferencesToken: string): strin
       </p>
     </div>
 
+    <!-- Choose your rotations CTA -->
+    <div style="background:#F0F7F4;border:1px solid #C8E6D8;border-radius:12px;padding:24px 28px;margin-top:16px;text-align:center;">
+      <p style="color:#1D1D1F;font-size:16px;font-weight:600;margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;">Choose your rotations</p>
+      <p style="color:#6E6E73;font-size:14px;line-height:1.6;margin:0 0 16px;">
+        You're currently receiving questions from all specialties. Want to focus on specific rotations?
+      </p>
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${siteUrl}/preferences?token=${preferencesToken}" style="height:42px;v-text-anchor:middle;width:220px;" arcsize="21%" strokecolor="#1A6B52" fillcolor="#1A6B52">
+        <w:anchorlock/>
+        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:bold;">Choose my specialties →</center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+        <tr>
+          <td style="background-color:#1A6B52;border-radius:8px;text-align:center;">
+            <a href="${siteUrl}/preferences?token=${preferencesToken}" style="display:inline-block;padding:10px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              Choose my specialties →
+            </a>
+          </td>
+        </tr>
+      </table>
+      <!--<![endif]-->
+    </div>
+
     <!-- Footer -->
     <div style="text-align:center;padding:24px 0;">
       <p style="color:#86868B;font-size:11px;line-height:1.5;margin:0 0 10px;">${DISCLAIMER}</p>
@@ -82,11 +107,6 @@ export function dailyQuestionEmailHtml(question: {
   `).join('');
 
   const answerUrl = `${siteUrl}/answer/${question.id}?email=${encodeURIComponent(subscriberEmail)}`;
-
-  const preferencesLink = preferencesToken
-    ? `<a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#1A6B52;font-size:12px;text-decoration:underline;">Manage your specialties</a>
-        <span style="color:#D2D2D7;margin:0 8px;">·</span>`
-    : '';
 
   return `
 <!DOCTYPE html>
@@ -145,11 +165,21 @@ export function dailyQuestionEmailHtml(question: {
       </div>
     </div>
 
+    <!-- Preferences CTA -->
+    ${preferencesToken ? `
+    <div style="background:#F0F7F4;border:1px solid #C8E6D8;border-radius:10px;padding:16px 20px;margin-top:12px;text-align:center;">
+      <a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#1A6B52;font-size:13px;font-weight:600;text-decoration:none;">
+        Receiving questions you don&rsquo;t want? Customise your specialties →
+      </a>
+    </div>
+    ` : ''}
+
     <!-- Footer -->
     <div style="text-align:center;padding:24px 0;">
       <p style="color:#86868B;font-size:11px;line-height:1.5;margin:0 0 10px;">${DISCLAIMER}</p>
       <div>
-        ${preferencesLink}
+        ${preferencesToken ? `<a href="${siteUrl}/preferences?token=${preferencesToken}" style="color:#1A6B52;font-size:12px;text-decoration:underline;">Manage specialties</a>
+        <span style="color:#D2D2D7;margin:0 8px;">·</span>` : ''}
         <a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(subscriberEmail)}" style="color:#86868B;font-size:12px;text-decoration:underline;">Unsubscribe</a>
       </div>
     </div>
