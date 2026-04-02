@@ -123,43 +123,59 @@ async function generateQuestions(conditionName: string, content: string, logs: s
 CLINICAL CONTENT ABOUT "${conditionName}":
 ${content}
 ${referenceBlock}
-Generate exactly 2 high-quality UKMLA-style Single Best Answer (SBA) questions about "${conditionName}". Each question must test a DIFFERENT clinical aspect (e.g. one on diagnosis, one on management — never two questions testing the same thing).
+Generate exactly 2 high-quality UKMLA-style Single Best Answer (SBA) questions about "${conditionName}". The 2 questions MUST test DIFFERENT clinical aspects — never two questions testing the same thing.
+
+═══════════════════════════════════════
+QUESTION TOPIC DISTRIBUTION
+═══════════════════════════════════════
+
+Choose from these question types, weighted as follows:
+• Diagnosis from a clinical vignette: ~35% (most common — present a case, ask "What is the most likely diagnosis?")
+• Management decisions: ~30% (ask about first-line treatment, next step in management, when to refer)
+• Differential diagnosis: ~15% (present an ambiguous case, ask which diagnosis best fits)
+• Investigation interpretation: ~10% (give results, ask what they indicate or what to do next)
+• OSCE-relevant practical knowledge / counselling / screening: ~10% (e.g. "What is the most appropriate advice?", "Which screening test is indicated?")
+
+ABSOLUTELY NO pure pathophysiology or mechanism questions. The UKMLA tests clinical application, not recall of mechanisms. Never ask "What is the underlying mechanism?" or "Which pathological process explains this?" — instead embed the pathophysiology knowledge into a clinical scenario.
+
+For these 2 questions, pick 2 DIFFERENT types from the list above.
 
 ═══════════════════════════════════════
 VIGNETTE REQUIREMENTS
 ═══════════════════════════════════════
 
-Every question MUST be a realistic clinical vignette containing ALL of:
+Every question MUST be a realistic clinical vignette that reads like a real UKMLA SBA. It must contain ALL of:
 • Patient demographics: age, sex
 • Relevant past medical history (where clinically relevant)
 • Presenting complaint with a specific timeline (e.g. "3-day history of", "over the past 6 weeks")
-• Examination findings (e.g. vitals, palpation, auscultation — be specific)
+• Examination findings (e.g. vitals, palpation, auscultation — be specific with numbers)
 • Investigation results where appropriate (use the reference values above; give actual numbers, not just "raised" or "abnormal")
+• At least one subtle red herring or incidental finding that might make you consider a different diagnosis — this is what makes questions challenging
 
 The question stem must ask for a SINGLE BEST ANSWER. Acceptable stems:
 • "What is the most likely diagnosis?"
 • "What is the most appropriate next investigation?"
 • "What is the most appropriate initial management?"
-• "What is the most likely underlying mechanism?" (only if testing applied pathophysiology, not pure recall)
 • "What is the single most important next step?"
+• "What is the most appropriate advice for this patient?"
 
-NEVER use: "Which of the following is true?", "Which is NOT a feature of?", "All of the following EXCEPT"
-
-Weight questions towards: diagnosis from vignette (most common), investigation choice, management decisions, differential diagnosis. Minimal pure pathophysiology.
+NEVER use: "Which of the following is true?", "Which is NOT a feature of?", "All of the following EXCEPT", "Which of the following is true about X?"
+ALWAYS embed knowledge in a clinical scenario — never ask about a topic in the abstract.
 
 ═══════════════════════════════════════
-OPTION REQUIREMENTS
+OPTION & DISTRACTOR REQUIREMENTS
 ═══════════════════════════════════════
 
 • Exactly 5 options (A–E), one correct answer
-• ALL 5 options must be clinically plausible for the scenario presented
-• At least 2 distractors must be genuinely tempting — common misconceptions, adjacent diagnoses, or the correct management for a related but different condition
+• ALL 5 options must be clinically plausible to someone who hasn't revised this topic thoroughly
+• At least 2 distractors must be genuinely tempting — they should be the correct answer for a closely related but different condition, a common misconception, or the next-best management option
+• NEVER include obviously wrong filler options that no student would pick
 • Options should be similar in length and specificity — don't make one option obviously more detailed
-• NEVER include descriptors that give away the answer. For example:
+• NEVER include descriptors that give away the answer:
   — Don't write "Type 4 (hyperkalaemic) RTA" when the stem mentions hyperkalaemia
   — Don't write "Addisonian crisis" when the stem describes hyperpigmentation and hypotension
   — Keep option text neutral and factual
-• ANSWER DISTRIBUTION: Distribute correct answers evenly across positions A, B, C, D, and E. For every batch of 10 questions, each position should appear approximately twice. Options A and E must appear just as often as B, C, and D. Never have 3 or more consecutive questions with the same correct answer position. For these 2 questions, use two DIFFERENT correct answer positions.
+• ANSWER DISTRIBUTION: For these 2 questions, use two DIFFERENT correct answer positions (A–E). Distribute evenly — don't favour B, C, D over A and E.
 
 ═══════════════════════════════════════
 DIFFICULTY
@@ -167,7 +183,7 @@ DIFFICULTY
 
 • One question should be "medium", one should be "hard"
 • Medium: requires applying clinical knowledge to a vignette, not just pattern matching a buzzword
-• Hard: requires distinguishing between two or more plausible diagnoses/management options, or interpreting investigation results in context
+• Hard: requires distinguishing between two or more plausible diagnoses/management options, or interpreting nuanced investigation results in context
 • No trivially easy questions — every question must require genuine clinical reasoning
 
 ═══════════════════════════════════════
@@ -175,43 +191,40 @@ EXPLANATION REQUIREMENTS
 ═══════════════════════════════════════
 
 Each explanation must:
-• State clearly and confidently WHY the correct answer is right (with clinical reasoning, not just restating the fact)
-• Explain WHY 2–3 key distractors are wrong (briefly — one sentence each)
-• Reference current UK guidelines (NICE, BNF, SIGN) where relevant
-• Use no hedging language — no "probably", "it might be", "could potentially"
+• State clearly and confidently WHY the correct answer is right, with clinical reasoning (not just restating the diagnosis name)
+• Explain WHY at least 2 key distractors are wrong (one sentence each — be specific about what makes them incorrect for THIS presentation)
+• Reference current UK guidelines where relevant: NICE, BNF, SIGN, NICE CKS. Cite the specific source (e.g. "As per NICE CKS, first-line treatment for X is..." or "NICE guidelines recommend...")
+• Use a confident, authoritative tone throughout — no hedging language ("probably", "it might be", "could potentially", "it is likely that")
 • Be 4–6 sentences total
+• Explicitly explain WHY each key examination finding and investigation result occurs in this condition — don't just name the diagnosis
 
 ═══════════════════════════════════════
 CLINICAL ACCURACY — NON-NEGOTIABLE
 ═══════════════════════════════════════
 
-This is the most important section. Clinical errors make questions unusable.
+Clinical errors make questions unusable.
 
 INTERNAL CONSISTENCY:
-• Every examination finding and investigation result in the vignette MUST be textbook-accurate for the intended diagnosis. Do not invent findings that do not match the pathophysiology.
-• If the diagnosis involves conductive hearing loss on the LEFT, Weber MUST lateralise to the LEFT (the affected ear). If it is sensorineural hearing loss on the LEFT, Weber MUST lateralise to the RIGHT (the unaffected ear). Rinne is negative (bone > air) on the side with conductive loss, and positive bilaterally in sensorineural loss.
-• If the vignette includes blood results, those values must be consistent with the diagnosis — e.g. raised CRP in infection, raised TSH with low free T4 in hypothyroidism.
-• The examination findings, investigation results, history, and correct answer must ALL point unambiguously to the same diagnosis. There must be zero contradiction between any elements.
+• Every examination finding and investigation result in the vignette MUST be textbook-accurate for the intended diagnosis
+• If the vignette includes blood results, those values must be consistent with the diagnosis
+• The examination findings, investigation results, history, and correct answer must ALL point unambiguously to the same diagnosis. Zero contradictions.
 
 COMPLETENESS:
-• The stem must contain enough clinical detail to reason through to the single best answer. No ambiguity — a competent final-year student should be able to arrive at the answer from the information given.
-• Do not omit a critical finding that would be needed to distinguish between two plausible options.
+• The stem must contain enough clinical detail to reason through to the single best answer
+• Do not omit a critical finding that would be needed to distinguish between two plausible options
 
-ACCURACY:
-• Every clinical fact must be correct and verifiable against standard medical textbooks.
-• The correct answer must DEFINITELY be correct — there must be no reasonable argument for another option being better.
-• Use current UK guidelines and standard UK practice (NICE, BNF, SIGN).
-• Investigation values must match the reference ranges provided above.
+UK GUIDELINES:
+• All management answers must follow current UK guidelines: NICE, BNF, SIGN, NICE CKS
+• Drug doses, first-line treatments, referral criteria must match UK practice
+• Specify the guideline source in the explanation
 
-SELF-VERIFICATION — after drafting each question, re-read it and check:
-1. Does every examination finding match the intended diagnosis? (e.g. if the answer is a left-sided conductive pathology, does Weber lateralise left?)
+SELF-VERIFICATION — after drafting each question, check:
+1. Does every examination finding match the intended diagnosis?
 2. Do all investigation results support the correct answer and not a distractor?
 3. Is the explanation consistent with every detail in the stem?
-4. Could a reasonable student argue for a different answer given the information? If yes, fix the stem.
-5. Are the examination findings and investigation results textbook-accurate for this condition, not invented or confused with a similar condition?
-
-EXPLANATION MUST EXPLAIN THE FINDINGS:
-• The explanation must explicitly state WHY each key examination finding and investigation result occurs in this condition — not just name the diagnosis. For example: "Weber lateralises to the left because otitis externa causes conductive hearing loss, and in conductive loss the tuning fork sound is heard louder in the affected ear."
+4. Could a reasonable student argue for a different answer? If yes, fix the stem.
+5. Are findings textbook-accurate, not invented or confused with a similar condition?
+6. Does the management follow current UK guidelines?
 
 ═══════════════════════════════════════
 
@@ -379,6 +392,7 @@ export async function POST(request: NextRequest) {
 
               const { error: insertError, data: insertData } = await supabase.from('questions').insert({
                 specialty: q.specialty,
+                condition_name: page.title,
                 difficulty: q.difficulty,
                 vignette: q.vignette,
                 option_a: q.option_a,

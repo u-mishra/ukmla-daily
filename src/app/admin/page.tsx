@@ -16,6 +16,7 @@ interface Stats {
 interface Question {
   id: string;
   specialty: string;
+  condition_name: string | null;
   difficulty: string;
   vignette: string;
   option_a: string;
@@ -415,6 +416,9 @@ export default function AdminPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">{q.specialty}</span>
+                        {q.condition_name && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{q.condition_name}</span>
+                        )}
                         <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">{q.difficulty}</span>
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Answer: {q.correct_answer}</span>
                       </div>

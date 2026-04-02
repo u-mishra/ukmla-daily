@@ -10,6 +10,7 @@ const DISCLAIMER =
 interface Question {
   id: string;
   specialty: string;
+  condition_name: string | null;
   difficulty: string;
   vignette: string;
   option_a: string;
@@ -299,6 +300,9 @@ export default function AnswerClient({
         {/* Explanation */}
         {submitted && (
           <div className="bg-[#F0F7F4] rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up" style={{ borderLeft: '3px solid #1A6B52' }}>
+            {question.condition_name && (
+              <p className="text-[12px] font-semibold text-[#6E6E73] mb-2">Condition: {question.condition_name}</p>
+            )}
             <p className="text-[11px] font-bold uppercase tracking-[2px] text-[#1A6B52] mb-3">Explanation</p>
             <div className="font-crimson text-[#3D3D3D] text-[15px] sm:text-[16px] leading-relaxed space-y-1">
               {explanationSentences.map((sentence, i) => (
