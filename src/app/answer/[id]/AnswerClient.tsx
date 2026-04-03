@@ -134,6 +134,37 @@ export default function AnswerClient({
     });
   };
 
+  const handleTextHighlight = useCallback((e: React.MouseEvent) => {
+    const selection = window.getSelection();
+
+    // Click (not drag) on existing highlight → remove it
+    const target = e.target as HTMLElement;
+    if (selection?.isCollapsed && target.tagName === 'MARK' && target.classList.contains('user-highlight')) {
+      const parent = target.parentNode;
+      if (parent) {
+        while (target.firstChild) parent.insertBefore(target.firstChild, target);
+        parent.removeChild(target);
+        parent.normalize();
+      }
+      return;
+    }
+
+    // Drag selection → wrap in highlight
+    if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (!range.toString().trim()) return;
+
+    const mark = document.createElement('mark');
+    mark.className = 'user-highlight';
+    mark.style.cssText = 'background:#FEF3C7;border-radius:2px;padding:0 2px;transition:background-color 0.2s;cursor:pointer;';
+
+    try {
+      range.surroundContents(mark);
+    } catch { /* cross-element selection — skip */ }
+
+    selection.removeAllRanges();
+  }, []);
+
   const explanationSentences = question.explanation.split(/(?<=[.!?])\s+/).filter(Boolean);
   const refValues = getReferenceValuesForSpecialty(question.specialty);
 
@@ -167,7 +198,7 @@ export default function AnswerClient({
           </div>
 
           {/* Vignette */}
-          <p className="font-crimson text-[16px] sm:text-[17px] leading-[1.75] text-[#1D1D1F] mb-6">
+          <p onMouseUp={handleTextHighlight} className="font-crimson text-[16px] sm:text-[17px] leading-[1.75] text-[#1D1D1F] mb-6">
             {question.vignette}
           </p>
 
@@ -300,7 +331,7 @@ export default function AnswerClient({
               <p className="text-[12px] font-semibold text-[#6E6E73] mb-2">Condition: {question.condition_name}</p>
             )}
             <p className="text-[11px] font-bold uppercase tracking-[2px] text-[#1A6B52] mb-3">Explanation</p>
-            <div className="font-crimson text-[#3D3D3D] text-[15px] sm:text-[16px] leading-relaxed space-y-1">
+            <div onMouseUp={handleTextHighlight} className="font-crimson text-[#3D3D3D] text-[15px] sm:text-[16px] leading-relaxed space-y-1">
               {explanationSentences.map((sentence, i) => (
                 <span
                   key={i}
