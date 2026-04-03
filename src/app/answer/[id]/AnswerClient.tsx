@@ -198,9 +198,13 @@ export default function AnswerClient({
           </div>
 
           {/* Vignette */}
-          <p onMouseUp={handleTextHighlight} className="font-crimson text-[16px] sm:text-[17px] leading-[1.75] text-[#1D1D1F] mb-6">
+          <p onMouseUp={handleTextHighlight} className="font-crimson text-[16px] sm:text-[17px] leading-[1.75] text-[#1D1D1F] mb-2">
             {question.vignette}
           </p>
+          {!submitted && (
+            <p className="text-[12px] text-[#9CA3AF] mb-6">Click and drag to highlight text</p>
+          )}
+          {submitted && <div className="mb-4" />}
 
           {/* Options */}
           <div className="space-y-2.5">
