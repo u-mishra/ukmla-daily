@@ -5,7 +5,14 @@
       "Bash(npm run:*)",
       "Bash(npm install:*)",
       "Bash(npm list:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(2. Wake up to a question › 3. Learn why\" — cleaner, less generic:*)",
+      "Bash(explanations · Built for busy med students · Free forever\":*)",
+      "Bash(SBA, straight to your inbox at 7am.\" \\(medium, larger\\) and:*)"
     ]
   }
 }

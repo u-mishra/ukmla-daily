@@ -196,7 +196,7 @@ function QuestionCard() {
   const q = SAMPLE_QUESTION;
 
   return (
-    <div ref={cardRef} className="demo-stagger bg-white rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
+    <div ref={cardRef} className="demo-stagger hover-lift bg-white rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
       {/* Title bar */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-[#F5F5F7] border-b border-black/[0.06]">
         <div className="w-[10px] h-[10px] rounded-full bg-[#FF5F57]" />
@@ -261,7 +261,7 @@ function QuestionCard() {
                 disabled={revealed}
                 className={`w-full text-left p-3 rounded-xl border flex items-start gap-3 min-h-[44px] transition-all duration-300 ${bgCls} ${borderCls} ${
                   shouldFade ? 'slide-left-fade' : ''
-                } ${!revealed ? 'cursor-pointer active:scale-[0.99]' : ''}`}
+                } ${!revealed ? 'cursor-pointer active:scale-[0.99] option-hover' : ''}`}
                 style={shouldFade ? { animationDelay: `${i * 0.06}s` } : undefined}
               >
                 <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold transition-all duration-300 ${letterCls}`}>
@@ -322,11 +322,11 @@ function CustomiseSection() {
               Customise what you receive after subscribing.
             </p>
             <div className="flex flex-wrap gap-2.5">
-              <span data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium text-white" style={{ backgroundColor: G }}>
+              <span data-stagger className="stagger-item chip-hover px-4 py-2.5 rounded-full text-[13px] font-medium text-white" style={{ backgroundColor: G }}>
                 All topics
               </span>
               {SPECIALTIES.map(s => (
-                <span key={s} data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium bg-white text-[#1D1D1F] border border-[#D2D2D7]">
+                <span key={s} data-stagger className="stagger-item chip-hover px-4 py-2.5 rounded-full text-[13px] font-medium bg-white text-[#1D1D1F] border border-[#D2D2D7]">
                   {s}
                 </span>
               ))}
@@ -344,11 +344,11 @@ function CustomiseSection() {
               A clinical vignette with five options, written to match the style and difficulty of the real UKMLA Applied Knowledge Test. Select your answer, eliminate distractors, then reveal the full explanation with guidelines.
             </p>
             <div className="flex gap-8">
-              <div data-stagger className="stagger-item">
+              <div data-stagger className="stagger-item hover-lift rounded-xl p-3 -m-3">
                 <p className="font-serif-display text-[28px] text-[#1D1D1F]">~2 min</p>
                 <p className="text-[12px] text-[#86868B]">Per question</p>
               </div>
-              <div data-stagger className="stagger-item">
+              <div data-stagger className="stagger-item hover-lift rounded-xl p-3 -m-3">
                 <p className="font-serif-display text-[28px] text-[#1D1D1F]">£0</p>
                 <p className="text-[12px] text-[#86868B]">Always</p>
               </div>
@@ -440,7 +440,7 @@ function SignupSection() {
                       key={s}
                       type="button"
                       onClick={() => toggleSpecialty(s)}
-                      className="px-3.5 py-2 rounded-full text-[13px] font-medium border transition-all duration-200 min-h-[36px] select-none active:scale-[0.96]"
+                      className="px-3.5 py-2 rounded-full text-[13px] font-medium border transition-all duration-200 min-h-[36px] select-none active:scale-[0.96] chip-hover"
                       style={{
                         backgroundColor: active ? G : 'transparent',
                         color: active ? '#fff' : '#6E6E73',
@@ -516,7 +516,7 @@ function FooterSection() {
         <p className="font-serif-display text-[15px] italic text-[#86868B] mb-4">
           Built by a medical student, for medical students.
         </p>
-        <a href="/privacy" className="text-[12px] transition-colors" style={{ color: G }}>
+        <a href="/privacy" className="text-[12px] link-hover" style={{ color: G }}>
           Privacy Policy
         </a>
         <p className="text-[11px] text-[#86868B] max-w-lg mx-auto leading-relaxed mt-4">
