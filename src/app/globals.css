@@ -197,44 +197,31 @@
 .demo-stagger.visible > *:nth-child(6) { transition-delay: 0.6s; }
 .demo-stagger.visible > *:nth-child(7) { transition-delay: 0.7s; }
 
-/* Hover lift — cards & interactive surfaces */
+/* ─── Hover enhancements ───
+   IMPORTANT: No `transition` overrides here — let Tailwind's
+   transition-all on each element handle the smoothing so we
+   never clobber entrance-animation transitions.             */
 @media (hover: hover) {
-  .hover-lift {
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .hover-lift:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12);
+  /* Option buttons in demo card — gentle nudge */
+  .option-hover:hover:not(:disabled) {
+    transform: translateX(2px);
+    border-color: #1A6B52 !important;
+    box-shadow: 0 2px 8px rgba(26, 107, 82, 0.08);
   }
 
-  /* Chip / pill hover */
-  .chip-hover {
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-                background-color 0.25s ease,
-                border-color 0.25s ease;
+  /* Primary buttons — lift + glow */
+  .btn-shine:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(26, 107, 82, 0.25);
   }
+
+  /* Interactive chips — slight scale */
   .chip-hover:hover {
     transform: translateY(-1px) scale(1.03);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
-  /* Subtle scale on primary buttons */
-  .btn-shine:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(26, 107, 82, 0.25);
-  }
-  .btn-shine {
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.25s ease;
-  }
-
-  /* Nav CTA underline reveal */
-  .cta-link {
-    position: relative;
-  }
+  /* CTA underline reveal */
   .cta-link::after {
     content: '';
     position: absolute;
@@ -249,55 +236,19 @@
     width: 100%;
   }
 
-  /* Option button hover in demo card */
-  .option-hover:hover:not(:disabled) {
-    transform: translateX(2px);
-    border-color: #1A6B52 !important;
-    box-shadow: 0 2px 8px rgba(26, 107, 82, 0.08);
-  }
-  .option-hover {
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.2s ease,
-                box-shadow 0.2s ease,
-                background-color 0.3s ease,
-                color 0.3s ease;
-  }
-
-  /* Privacy link hover */
+  /* Links — subtle fade */
   .link-hover:hover {
     opacity: 0.7;
   }
-  .link-hover {
-    transition: opacity 0.2s ease;
-  }
 }
 
-/* Smooth focus ring for inputs */
-input:focus-visible {
-  outline: none;
-  border-color: #1A6B52 !important;
-  box-shadow: 0 0 0 3px rgba(26, 107, 82, 0.1) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Stat numbers — gentle count-up feel via fade */
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.stat-reveal {
-  opacity: 0;
-  animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+/* These base styles are safe — they don't define `transition` */
+.cta-link { position: relative; }
+.link-hover { transition: opacity 0.2s ease; }
 
 /* Touch device overrides */
 @media (hover: none) {
-  .hover-lift:hover { transform: none; box-shadow: none; }
-  .btn-shine:hover { transform: none; box-shadow: none; }
   .btn-shine:hover::after { display: none; }
-  .chip-hover:hover { transform: none; box-shadow: none; }
-  .option-hover:hover { transform: none; }
 }
 
 /* ─── Legacy classes (used by other pages) ─── */

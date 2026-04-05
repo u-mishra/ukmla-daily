@@ -196,7 +196,7 @@ function QuestionCard() {
   const q = SAMPLE_QUESTION;
 
   return (
-    <div ref={cardRef} className="demo-stagger hover-lift bg-white rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
+    <div ref={cardRef} className="demo-stagger bg-white rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
       {/* Title bar */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-[#F5F5F7] border-b border-black/[0.06]">
         <div className="w-[10px] h-[10px] rounded-full bg-[#FF5F57]" />
@@ -322,11 +322,11 @@ function CustomiseSection() {
               Customise what you receive after subscribing.
             </p>
             <div className="flex flex-wrap gap-2.5">
-              <span data-stagger className="stagger-item chip-hover px-4 py-2.5 rounded-full text-[13px] font-medium text-white" style={{ backgroundColor: G }}>
+              <span data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium text-white" style={{ backgroundColor: G }}>
                 All topics
               </span>
               {SPECIALTIES.map(s => (
-                <span key={s} data-stagger className="stagger-item chip-hover px-4 py-2.5 rounded-full text-[13px] font-medium bg-white text-[#1D1D1F] border border-[#D2D2D7]">
+                <span key={s} data-stagger className="stagger-item px-4 py-2.5 rounded-full text-[13px] font-medium bg-white text-[#1D1D1F] border border-[#D2D2D7]">
                   {s}
                 </span>
               ))}
@@ -344,11 +344,11 @@ function CustomiseSection() {
               A clinical vignette with five options, written to match the style and difficulty of the real UKMLA Applied Knowledge Test. Select your answer, eliminate distractors, then reveal the full explanation with guidelines.
             </p>
             <div className="flex gap-8">
-              <div data-stagger className="stagger-item hover-lift rounded-xl p-3 -m-3">
+              <div data-stagger className="stagger-item">
                 <p className="font-serif-display text-[28px] text-[#1D1D1F]">~2 min</p>
                 <p className="text-[12px] text-[#86868B]">Per question</p>
               </div>
-              <div data-stagger className="stagger-item hover-lift rounded-xl p-3 -m-3">
+              <div data-stagger className="stagger-item">
                 <p className="font-serif-display text-[28px] text-[#1D1D1F]">£0</p>
                 <p className="text-[12px] text-[#86868B]">Always</p>
               </div>
