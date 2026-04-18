@@ -12,6 +12,11 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
       },
+      colors: {
+        accent: "#1A6B52",
+        paper: "#F5F5F7",
+        ink: "#1A1A1A",
+      },
       borderRadius: {
         "2xl": "16px",
         xl: "12px",
