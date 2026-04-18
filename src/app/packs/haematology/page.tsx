@@ -122,7 +122,7 @@ export default function HaematologyPackPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       {/* Section 1 — Hero */}
-      <section className="bg-paper pt-24 sm:pt-32 pb-16 sm:pb-24">
+      <section className="bg-paper pt-16 pb-14 md:pt-24 md:pb-20">
         <div className="max-w-3xl mx-auto px-5 text-center">
           <p className="text-[13px] font-bold tracking-[3px] uppercase text-accent mb-5">
             UKMLA Daily · Pack
@@ -138,7 +138,7 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 2 — The problem */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-2xl mx-auto px-5">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-6">
             The problem
@@ -159,7 +159,7 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 3 — What this is */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-2xl mx-auto px-5">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-6">
             What this is
@@ -187,16 +187,16 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 4 — What's in it */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-6xl mx-auto px-5">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-10">
             What&rsquo;s in it
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-stretch">
             {CATEGORIES.map((cat) => (
               <div
                 key={cat.label}
-                className="bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 shadow-sm shadow-black/[0.02]"
+                className="h-full flex flex-col bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 shadow-sm shadow-black/[0.02]"
               >
                 <p className="text-[11px] font-bold tracking-[2px] uppercase text-accent mb-3">
                   {cat.label} ({cat.count})
@@ -218,16 +218,16 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 5 — Why buy this over free resources */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
-        <div className="max-w-5xl mx-auto px-5">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
+        <div className="max-w-6xl mx-auto px-5">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-10">
             Why this over free resources
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
             {REASONS.map((r) => (
               <div
                 key={r.title}
-                className="bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 shadow-sm shadow-black/[0.02]"
+                className="h-full flex flex-col bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 shadow-sm shadow-black/[0.02]"
               >
                 <h3 className="text-[15px] font-semibold text-accent mb-2">{r.title}</h3>
                 <p className="text-[14px] sm:text-[15px] leading-[1.6] text-ink/80">{r.body}</p>
@@ -238,7 +238,7 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 6 — What you get (visual) */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-5xl mx-auto px-5">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-10">
             What you get
@@ -263,7 +263,7 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 7 — Pricing */}
-      <section className="bg-paper py-16 sm:py-24 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-2xl mx-auto px-5 text-center">
           <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-8">
             Pricing
@@ -279,9 +279,9 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 8 — FAQ */}
-      <section className="bg-paper py-14 sm:py-20 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 md:py-24 border-t border-black/[0.06]">
         <div className="max-w-2xl mx-auto px-5">
-          <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-8">
+          <h2 className="font-serif-display text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] text-ink mb-6">
             FAQ
           </h2>
           <div className="space-y-3">
@@ -309,7 +309,7 @@ export default function HaematologyPackPage() {
       </section>
 
       {/* Section 9 — Final CTA */}
-      <section className="bg-paper py-20 sm:py-28 border-t border-black/[0.06]">
+      <section className="bg-paper py-20 border-t border-black/[0.06]">
         <div className="max-w-2xl mx-auto px-5 text-center">
           <h2 className="font-serif-display text-[clamp(2.5rem,6vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink mb-5">
             Ready?
@@ -318,7 +318,6 @@ export default function HaematologyPackPage() {
             29 topics. 281 flashcards. One Notion template. £18.
           </p>
           <PrimaryCTA />
-          <div className="h-16 sm:h-24" aria-hidden="true" />
         </div>
       </section>
     </main>
